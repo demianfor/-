@@ -108,7 +108,8 @@
   .deck h1 { font-size: 22px; margin: 0 0 16px 4px; }
   .row { display: grid; gap: 10px; margin-bottom: 14px; }
   .row.chars { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
-  .row.gear { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
+  .row.gear { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); margin-bottom: 6px; }
+  .row.gear + .row.cards { margin-top: 8px; }
   .row.cards { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
   .row.pets { grid-template-columns: repeat(3, 0.72fr) 1.8fr; align-items: stretch; gap: 14px; }
   .row.pets > div:not(.position-box) { align-self: start; }
@@ -125,15 +126,14 @@
   .badge-mid   { background: linear-gradient(135deg, #f0c96a, #cf9a2a); }
   .badge-back  { background: linear-gradient(135deg, #5cb0ea, #2f80c9); }
 
-  .gear-cell { text-align: center; }
+  .gear-cell { position: relative; text-align: center; }
   .gear-cell img { width: 100%; aspect-ratio: 1/1; object-fit: contain; background: var(--panel2); border-radius: 8px; border: 1px solid var(--border); padding: 6px; }
-  .gear-cell .label { font-size: 10.5px; color: var(--muted); margin-top: 4px; line-height: 1.3; }
 
-  .card-skill { border-radius: 10px; overflow: hidden; border: 2px solid var(--border); background: var(--panel2); }
+  .card-skill { position: relative; border-radius: 10px; overflow: hidden; border: 2px solid var(--border); background: var(--panel2); }
   .card-skill img { width: 100%; aspect-ratio: 1/1; object-fit: cover; object-position: 50% 50%; display: block; }
   .card-skill .name { background: #000; color: #fff; text-align: center; font-size: 12px; padding: 5px 0; }
 
-  .pet-card { border-radius: 10px; overflow: hidden; border: 2px solid var(--border); background: var(--panel2); }
+  .pet-card { position: relative; border-radius: 10px; overflow: hidden; border: 2px solid var(--border); background: var(--panel2); }
   .pet-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; object-position: 50% 22%; display: block; }
   .pet-card .name { background: #000; color: #fff; text-align: center; font-size: 12px; padding: 5px 0; }
   .pet-pos { text-align: center; font-size: 10px; color: var(--gold); margin-bottom: 4px; }
@@ -165,6 +165,8 @@
   .arrow { color: var(--muted); font-size: 14px; padding-top: 14px; }
   .warn-list { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
   .warn-item { color: var(--gold); font-size: 13px; line-height: 1.7; }
+  .warn-item .tile-remove, .warn-list .add-btn.small { position: static; width: auto; height: auto; border-radius: 5px; padding: 1px 6px; font-size: 10px; margin-left: 6px; background: var(--red); vertical-align: middle; }
+  .warn-list .add-btn.small { background: var(--panel2); color: var(--muted); margin-left: 0; }
   .note-tag { display: inline-block; background: #3a3020; color: var(--gold); font-size: 10px; border-radius: 4px; padding: 2px 6px; margin-bottom: 8px; }
   :root[data-theme="light"] .note-tag { background: #fbeecb; color: #8a6612; }
 
@@ -188,27 +190,42 @@
   .empty { color: var(--muted); text-align: center; padding: 60px 20px; }
 
   /* ---------- 관리자 편집 폼 ---------- */
-  .editor { max-width: 900px; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-top: 16px; }
-  .editor h2 { font-size: 15px; margin: 18px 0 10px; color: var(--gold); }
-  .editor h2:first-child { margin-top: 0; }
-  .field-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-  .field-row label { font-size: 12px; color: var(--muted); width: 70px; flex: 0 0 auto; }
-  .field-row input, .field-row select, .field-row textarea { flex: 1; min-width: 100px; }
-  .slot-editor { border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 10px; background: var(--panel2); }
-  .slot-editor .grid2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px; }
-  .slot-editor .grid2 div { display: flex; flex-direction: column; gap: 3px; }
-  .slot-editor .grid2 label { font-size: 10.5px; color: var(--muted); }
-  .cycle-editor { border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 10px; background: var(--panel2); }
-  .step-editor { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
-  .step-editor select, .step-editor input { flex: 1; min-width: 90px; }
   .small-btn { padding: 4px 10px; font-size: 11.5px; }
   .danger { background: var(--red); color: #fff; border: none; }
   .primary { background: var(--blue); color: #fff; border: none; font-weight: 600; }
-  .row-btns { display: flex; gap: 6px; margin-top: 6px; }
-  .save-bar { position: sticky; bottom: 0; background: var(--panel); border-top: 1px solid var(--border); padding: 10px 0; margin-top: 16px; display: flex; gap: 10px; justify-content: flex-end; }
+  .save-bar { position: sticky; bottom: 0; background: var(--panel); border-top: 1px solid var(--border); padding: 10px 0; margin-top: 16px; display: flex; align-items: center; gap: 10px; justify-content: flex-end; z-index: 5; }
+  .save-bar #save-msg { margin-right: auto; }
   .msg { font-size: 12.5px; padding: 8px 0; }
   .msg.ok { color: #6bd08a; }
   .msg.err { color: var(--red); }
+
+  /* ---- 관리자 인라인 편집 ---- */
+  #admin-hint { max-width: 960px; margin: 0 auto 10px; font-size: 12px; color: var(--gold); background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+  .deck.editing .card-char, .deck.editing .gear-cell, .deck.editing .card-skill, .deck.editing .pet-card, .deck.editing .step {
+    outline: 1px dashed var(--border); outline-offset: 2px; cursor: pointer;
+  }
+  .tile-overlay { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; z-index: 1; }
+  .tile-overlay.small { width: 48px; height: 48px; left: 50%; top: 0; transform: translateX(-50%); inset: auto; }
+  .badge-select {
+    position: absolute; top: 6px; right: 6px; z-index: 2; min-width: 22px; height: 20px;
+    border: none; border-radius: 6px; font-size: 10.5px; font-weight: 700; padding: 0 3px;
+    color: #fff; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.45); appearance: auto;
+  }
+  .badge-select.badge-front { background: linear-gradient(135deg, #e8636c, #c93540); }
+  .badge-select.badge-mid   { background: linear-gradient(135deg, #f0c96a, #cf9a2a); }
+  .badge-select.badge-back  { background: linear-gradient(135deg, #5cb0ea, #2f80c9); }
+  .tile-remove { position: absolute; top: 8px; left: 8px; z-index: 2; width: 20px; height: 20px; line-height: 18px; padding: 0; border-radius: 50%; border: none; background: rgba(0,0,0,0.55); color: #fff; font-size: 13px; cursor: pointer; }
+  .step .tile-remove.small { top: -4px; right: -4px; left: auto; width: 16px; height: 16px; line-height: 14px; font-size: 11px; }
+  .add-row { text-align: center; margin: -4px 0 14px; }
+  .add-btn { background: var(--panel2); border: 1px dashed var(--border); border-radius: 8px; padding: 6px 14px; font-size: 12px; color: var(--muted); cursor: pointer; }
+  .add-btn.small { padding: 3px 8px; font-size: 10.5px; align-self: center; margin-left: 4px; }
+  .editable-text { outline: none; border-radius: 4px; }
+  .editable-text:hover, .editable-text:focus { background: var(--panel2); }
+  .editable-text:empty:before { content: attr(data-placeholder); color: var(--muted); }
+  .title-text h1.editable-text:empty:before { content: '덱 제목'; }
+  .cycle-label-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .cycle-label-row .tile-remove { position: static; width: auto; height: auto; border-radius: 5px; padding: 2px 8px; font-size: 10.5px; background: var(--red); }
+  .title-boss.editable { pointer-events: auto; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -237,8 +254,14 @@
     <div class="empty" style="padding:20px 8px;">불러오는 중...</div>
   </div>
   <div class="main">
+    <div id="admin-hint" style="display:none">관리자 모드: 이미지를 클릭하면 바로 바꿀 수 있고, 글자를 클릭하면 바로 고칠 수 있어요.</div>
     <div id="viewer"><div class="deck"><div class="empty">왼쪽에서 덱을 선택하세요</div></div></div>
-    <div id="editor-wrap"></div>
+    <div id="admin-bar" class="save-bar" style="display:none">
+      <span id="save-msg" class="msg"></span>
+      <button class="small-btn danger" id="admin-delete-btn" type="button">이 덱 삭제</button>
+      <button class="small-btn" id="admin-revert-btn" type="button">되돌리기</button>
+      <button class="pill-btn active" id="admin-save-btn" type="button">저장</button>
+    </div>
   </div>
 </div>
 
@@ -258,7 +281,8 @@ var state = {
   currentDeck: null,
   characters: [],
   pets: [],
-  icons: []
+  icons: [],
+  equip: { weapon: [], armor: [], item: [], rune: [] }
 };
 
 /* ---------- 유틸 ---------- */
@@ -317,7 +341,7 @@ function onAdminBtn() {
     try { localStorage.removeItem('gn_admin_pw'); } catch (e) {}
     document.getElementById('admin-btn').textContent = '관리자 모드';
     document.getElementById('admin-btn').classList.remove('admin-on');
-    document.getElementById('editor-wrap').innerHTML = '';
+    renderCurrentDeck();
     return;
   }
   var pw = prompt('관리자 비밀번호를 입력하세요');
@@ -334,7 +358,7 @@ function tryAdminLogin(pw, silent) {
       document.getElementById('admin-btn').textContent = '관리자 모드 ON';
       document.getElementById('admin-btn').classList.add('admin-on');
       renderDeckList();
-      if (state.currentDeck) openEditor(state.currentDeck);
+      loadLibraries().then(renderCurrentDeck);
     } else if (!silent) {
       alert('관리자 비밀번호가 올바르지 않습니다.');
     }
@@ -356,14 +380,35 @@ function renderDeckList() {
 
 function selectDeck(id) {
   state.currentId = id;
-  document.getElementById('editor-wrap').innerHTML = '';
   renderDeckList();
   api('get', { pw: state.viewPw, id: id }).then(function (res) {
     if (!res.ok) { document.getElementById('viewer').innerHTML = '<div class="deck"><div class="empty">불러오기 실패</div></div>'; return; }
     state.currentDeck = res.deck;
-    document.getElementById('viewer').innerHTML = renderDeckHtml(res.deck);
-    if (state.isAdmin) openEditor(res.deck);
+    if (state.isAdmin) { loadLibraries().then(renderCurrentDeck); } else { renderCurrentDeck(); }
   });
+}
+
+/* ---------- 현재 덱 그리기 (일반/관리자 공통) ---------- */
+function renderCurrentDeck() {
+  var viewer = document.getElementById('viewer');
+  var deck = state.currentDeck;
+  if (!deck) {
+    viewer.innerHTML = '<div class="deck"><div class="empty">왼쪽에서 덱을 선택하세요</div></div>';
+    document.getElementById('admin-bar').style.display = 'none';
+    document.getElementById('admin-hint').style.display = 'none';
+    return;
+  }
+  var editable = !!state.isAdmin;
+  viewer.innerHTML = renderDeckHtml(deck, editable);
+  if (editable) {
+    wireAdminInline_(viewer, deck);
+    document.getElementById('admin-bar').style.display = 'flex';
+    document.getElementById('admin-hint').style.display = 'block';
+    wireAdminBar_(deck);
+  } else {
+    document.getElementById('admin-bar').style.display = 'none';
+    document.getElementById('admin-hint').style.display = 'none';
+  }
 }
 
 /* =========================================================
@@ -381,34 +426,61 @@ function sortedCharsForRow(characters) {
   });
 }
 
-function renderDeckHtml(deck) {
+var POS_OPTIONS = [
+  ['후열:1', '후열1'], ['후열:2', '후열2'],
+  ['중열:1', '중열1'], ['중열:2', '중열2'],
+  ['전열:1', '전열1'], ['전열:2', '전열2']
+];
+function posOptionsHtml_(col, slot) {
+  var cur = col + ':' + slot;
+  return POS_OPTIONS.map(function (p) {
+    return '<option value="' + p[0] + '"' + (p[0] === cur ? ' selected' : '') + '>' + p[1] + '</option>';
+  }).join('');
+}
+
+// deck: 덱 데이터. editable: true면 이미지 클릭→드롭다운 교체, 글자 클릭→직접 수정이 가능한 관리자용 마크업을 함께 그린다.
+function renderDeckHtml(deck, editable) {
   var chars = sortedCharsForRow(deck.characters || []);
-  var charsHtml = chars.map(function (c) {
-    return '<div class="card-char"><img src="' + esc(c.portrait) + '">' +
-      '<div class="badge ' + COL_BADGE[c.col] + '">' + c.slot + '</div>' +
-      '<div class="name">' + esc(c.name) + '</div></div>';
+  var charNames = state.characters.map(function (c) { return c.name; });
+
+  var charsHtml = chars.map(function (c, i) {
+    var idx = (deck.characters || []).indexOf(c);
+    var badge = editable
+      ? '<select class="badge-select ' + COL_BADGE[c.col] + '" data-edit-pos="' + idx + '">' + posOptionsHtml_(c.col, c.slot) + '</select>'
+      : '<div class="badge ' + COL_BADGE[c.col] + '">' + c.slot + '</div>';
+    var overlay = editable ? '<select class="tile-overlay" data-edit-char="' + idx + '">' + optionsHtml_(charNames, c.name) + '</select>' : '';
+    var removeBtn = editable ? '<button type="button" class="tile-remove" data-remove-char="' + idx + '" title="캐릭터 삭제">×</button>' : '';
+    return '<div class="card-char' + (editable ? ' editable' : '') + '"><img src="' + esc(c.portrait) + '">' +
+      badge + '<div class="name">' + esc(c.name) + '</div>' + overlay + removeBtn + '</div>';
   }).join('');
 
   var gearRow1 = chars.map(function (c) {
-    return gearCell_(c.weapon) + gearCell_(c.armor);
+    var idx = (deck.characters || []).indexOf(c);
+    return gearCell_(c.weapon, idx, 'weapon', editable) + gearCell_(c.armor, idx, 'armor', editable);
   }).join('');
   var gearRow2 = chars.map(function (c) {
-    return gearCell_(c.item) + gearCell_(c.rune);
+    var idx = (deck.characters || []).indexOf(c);
+    return gearCell_(c.item, idx, 'item', editable) + gearCell_(c.rune, idx, 'rune', editable);
   }).join('');
 
   var cardsHtml = chars.map(function (c) {
-    return '<div class="card-skill"><img src="' + esc((c.card && c.card.img) || '') + '"><div class="name">' + esc(c.name) + ' 카드</div></div>';
+    var idx = (deck.characters || []).indexOf(c);
+    var overlay = editable ? '<select class="tile-overlay" data-edit-char="' + idx + '">' + optionsHtml_(charNames, c.name) + '</select>' : '';
+    return '<div class="card-skill' + (editable ? ' editable' : '') + '"><img src="' + esc((c.card && c.card.img) || '') + '"><div class="name">' + esc(c.name) + ' 카드</div>' + overlay + '</div>';
   }).join('');
 
   var pets = deck.pets || [];
   var petOrder = { '후열': 0, '중열': 1, '전열': 2 };
-  var petsSorted = pets.slice().sort(function (a, b) { return petOrder[a.pos] - petOrder[b.pos]; });
-  var petsHtml = petsSorted.map(function (p) {
-    return '<div><div class="pet-pos">' + esc(p.pos) + ' 펫</div>' +
-      '<div class="pet-card"><img src="' + esc(p.img) + '"><div class="name">' + esc(p.name) + '</div></div></div>';
+  var petNames = state.pets.map(function (p) { return p.name; });
+  var posList = editable ? ['후열', '중열', '전열'] : pets.slice().sort(function (a, b) { return petOrder[a.pos] - petOrder[b.pos]; }).map(function (p) { return p.pos; });
+  var petsHtml = posList.map(function (pos) {
+    var p = pets.find(function (x) { return x.pos === pos; }) || { pos: pos, name: '', img: '' };
+    var overlay = editable ? '<select class="tile-overlay" data-edit-pet="' + pos + '">' + optionsHtml_(petNames, p.name) + '</select>' : '';
+    return '<div><div class="pet-pos">' + esc(pos) + ' 펫</div>' +
+      '<div class="pet-card' + (editable ? ' editable' : '') + '"><img src="' + esc(p.img) + '"><div class="name">' + esc(p.name) + '</div>' + overlay + '</div></div>';
   }).join('');
 
-  // position box: 컬럼별 그룹핑, slot 오름차순 (1 위 / 2 아래)
+  // position box: 컬럼별 그룹핑, slot 오름차순 (1 위 / 2 아래) — 배치 미리보기, 읽기 전용
   var byCol = { '후열': [], '중열': [], '전열': [] };
   chars.forEach(function (c) { byCol[c.col].push(c); });
   Object.keys(byCol).forEach(function (k) { byCol[k].sort(function (a, b) { return a.slot - b.slot; }); });
@@ -424,35 +496,66 @@ function renderDeckHtml(deck) {
     '<div class="cols">' + posColHtml('후열') + posColHtml('중열') + posColHtml('전열') + '</div></div>';
 
   var timelineHtml = '';
-  if (deck.timeline && deck.timeline.cycles && deck.timeline.cycles.length) {
-    var cyclesHtml = deck.timeline.cycles.map(function (cy) {
-      var stepsHtml = cy.steps.map(function (s, i) {
-        var arrow = i < cy.steps.length - 1 ? '<div class="arrow">→</div>' : '';
-        return '<div class="step"><div class="step-num">' + (i + 1) + '</div>' +
+  if (editable || (deck.timeline && deck.timeline.cycles && deck.timeline.cycles.length)) {
+    var cycles = (deck.timeline && deck.timeline.cycles) || [];
+    var cyclesHtml = cycles.map(function (cy, ci) {
+      var stepsHtml = cy.steps.map(function (s, si) {
+        var isLast = si === cy.steps.length - 1;
+        var arrow = (!isLast || editable) ? '<div class="arrow">→</div>' : '';
+        var charOverlay = editable ? '<select class="tile-overlay small" data-edit-step="' + ci + ':' + si + '">' + optionsHtml_(charNames, s.name) + '</select>' : '';
+        var tagHtml = editable
+          ? '<div class="step-time editable-text" contenteditable="true" data-step-field="tag:' + ci + ':' + si + '" data-placeholder="배수">' + esc(s.tag) + '</div>'
+          : (s.tag ? '<div class="step-time">' + esc(s.tag) + '</div>' : '');
+        var memoHtml = editable
+          ? '<div class="step-memo editable-text" contenteditable="true" data-step-field="memo:' + ci + ':' + si + '" data-placeholder="메모">' + esc(s.memo) + '</div>'
+          : (s.memo ? '<div class="step-memo">' + esc(s.memo) + '</div>' : '');
+        var removeBtn = editable ? '<button type="button" class="tile-remove small" data-remove-step="' + ci + ':' + si + '" title="스텝 삭제">×</button>' : '';
+        return '<div class="step' + (editable ? ' editable' : '') + '"><div class="step-num">' + (si + 1) + '</div>' +
           '<img src="' + esc(s.img) + '"><div class="step-name">' + esc(s.name) + '</div>' +
-          (s.tag ? '<div class="step-time">' + esc(s.tag) + '</div>' : '') +
-          (s.memo ? '<div class="step-memo">' + esc(s.memo) + '</div>' : '') +
+          tagHtml + memoHtml + charOverlay + removeBtn +
           '</div>' + arrow;
       }).join('');
-      return '<div class="cycle"><div class="cycle-label">' + esc(cy.label) + '</div><div class="timeline-row">' + stepsHtml + '</div></div>';
+      var addStepBtn = editable ? '<button type="button" class="add-btn small" data-add-step="' + ci + '">+ 스텝 추가</button>' : '';
+      var cycleLabel = editable
+        ? '<span class="cycle-label editable-text" contenteditable="true" data-cycle-field="' + ci + '">' + esc(cy.label) + '</span><button type="button" class="tile-remove small" data-remove-cycle="' + ci + '" title="사이클 삭제">사이클 삭제</button>'
+        : '<div class="cycle-label">' + esc(cy.label) + '</div>';
+      return '<div class="cycle"><div class="cycle-label-row">' + cycleLabel + '</div><div class="timeline-row">' + stepsHtml + addStepBtn + '</div></div>';
     }).join('');
-    timelineHtml = '<div class="timeline"><div class="timeline-title">스킬 타임라인 — 사이클별 사용 횟수/순서는 덱마다 다를 수 있음</div>' + cyclesHtml;
-    if (deck.warnings && deck.warnings.length) {
-      timelineHtml += '<div class="warn-list">' + deck.warnings.map(function (w) {
-        return '<div class="warn-item">※ ' + esc(w) + '</div>';
-      }).join('') + '</div>';
+    var addCycleBtn = editable ? '<button type="button" class="add-btn" data-add-cycle>+ 사이클 추가</button>' : '';
+    timelineHtml = '<div class="timeline"><div class="timeline-title">스킬 타임라인 — 사이클별 사용 횟수/순서는 덱마다 다를 수 있음</div>' + cyclesHtml + addCycleBtn;
+
+    var warnings = deck.warnings || [];
+    if (editable || warnings.length) {
+      var warnHtml = warnings.map(function (w, wi) {
+        var removeBtn = editable ? '<button type="button" class="tile-remove small" data-remove-warn="' + wi + '" title="삭제">×</button>' : '';
+        var text = editable
+          ? '<span class="editable-text" contenteditable="true" data-warn-field="' + wi + '" data-placeholder="주의사항 입력">' + esc(w) + '</span>'
+          : esc(w);
+        return '<div class="warn-item">※ ' + text + removeBtn + '</div>';
+      }).join('');
+      var addWarnBtn = editable ? '<button type="button" class="add-btn small" data-add-warn>+ 주의사항 추가</button>' : '';
+      timelineHtml += '<div class="warn-list">' + warnHtml + addWarnBtn + '</div>';
     }
     timelineHtml += '</div>';
   }
 
+  var bossImg = '<img src="' + esc(deck.bossIcon || '') + '">';
   var titleBar = '<div class="title-bar">' +
-    (deck.bossIcon ? '<div class="title-boss"><img src="' + esc(deck.bossIcon) + '"></div>' : '') +
-    '<div class="title-text"><h1>' + esc(deck.title) + '</h1>' +
-    (deck.noteTag ? '<span class="note-tag">' + esc(deck.noteTag) + '</span>' : '') +
+    (editable
+      ? '<div class="title-boss editable" data-edit-boss title="클릭해서 보스 이미지 URL 바꾸기">' + bossImg + '</div>'
+      : (deck.bossIcon ? '<div class="title-boss">' + bossImg + '</div>' : '')) +
+    '<div class="title-text">' +
+    (editable ? '<h1 class="editable-text" contenteditable="true" data-field="title">' + esc(deck.title) + '</h1>' : '<h1>' + esc(deck.title) + '</h1>') +
+    (editable
+      ? '<span class="note-tag editable-text" contenteditable="true" data-field="noteTag" data-placeholder="태그(선택)">' + esc(deck.noteTag) + '</span>'
+      : (deck.noteTag ? '<span class="note-tag">' + esc(deck.noteTag) + '</span>' : '')) +
     '</div></div>';
 
-  return '<div class="deck">' + titleBar +
+  var addCharRow = editable ? '<div class="add-row"><button type="button" class="add-btn" data-add-char>+ 캐릭터 추가</button></div>' : '';
+
+  return '<div class="deck' + (editable ? ' editing' : '') + '">' + titleBar +
     '<div class="row chars" style="grid-template-columns:repeat(' + chars.length + ',1fr)">' + charsHtml + '</div>' +
+    addCharRow +
     '<div class="row gear" style="grid-template-columns:repeat(' + (chars.length * 2) + ',1fr)">' + gearRow1 + '</div>' +
     '<div class="row gear" style="grid-template-columns:repeat(' + (chars.length * 2) + ',1fr)">' + gearRow2 + '</div>' +
     '<div class="row cards" style="grid-template-columns:repeat(' + chars.length + ',1fr)">' + cardsHtml + '</div>' +
@@ -461,9 +564,11 @@ function renderDeckHtml(deck) {
     '</div>';
 }
 
-function gearCell_(g) {
-  if (!g || (!g.icon && !g.name)) return '<div class="gear-cell"></div>';
-  return '<div class="gear-cell"><img src="' + esc(g.icon || '') + '"><div class="label">' + esc(g.name || '') + '</div></div>';
+function gearCell_(g, idx, kind, editable) {
+  var name = (g && g.name) || '';
+  var icon = (g && g.icon) || '';
+  var overlay = editable ? '<select class="tile-overlay" data-edit-gear="' + idx + ':' + kind + '">' + optionsHtml_((state.equip[kind] || []).map(function (x) { return x.name; }), name) + '</select>' : '';
+  return '<div class="gear-cell' + (editable ? ' editable' : '') + '"><img src="' + esc(icon) + '" title="' + esc(name) + '">' + overlay + '</div>';
 }
 
 /* =========================================================
@@ -479,8 +584,7 @@ function newDeck() {
   state.currentDeck = blank;
   state.decks.push({ id: id, title: '새 덱' });
   renderDeckList();
-  document.getElementById('viewer').innerHTML = renderDeckHtml(blank);
-  openEditor(blank);
+  loadLibraries().then(renderCurrentDeck);
 }
 
 function loadLibraries() {
@@ -488,24 +592,15 @@ function loadLibraries() {
   return Promise.all([
     api('characters', { pw: state.viewPw }).then(function (r) { if (r.ok) state.characters = r.characters; }),
     api('pets', { pw: state.viewPw }).then(function (r) { if (r.ok) state.pets = r.pets; }),
-    api('icons', { pw: state.viewPw }).then(function (r) { if (r.ok) state.icons = r.icons; })
+    api('icons', { pw: state.viewPw }).then(function (r) { if (r.ok) state.icons = r.icons; }),
+    api('equip', { pw: state.viewPw }).then(function (r) { if (r.ok) state.equip = r.equip; })
   ]);
 }
 
 function findChar_(name) { return state.characters.find(function (c) { return c.name === name; }); }
 function findPet_(name) { return state.pets.find(function (p) { return p.name === name; }); }
+function findEquip_(kind, name) { return (state.equip[kind] || []).find(function (i) { return i.name === name; }); }
 function findIcon_(name) { return state.icons.find(function (i) { return i.name === name; }); }
-
-function openEditor(deck) {
-  var wrap = document.getElementById('editor-wrap');
-  wrap.innerHTML = '<div class="editor"><p style="padding:20px;color:var(--muted)">불러오는 중...</p></div>';
-  loadLibraries().then(function () {
-    var d = JSON.parse(JSON.stringify(deck)); // 편집용 복사본
-    wrap.innerHTML = buildEditorHtml_(d);
-    wrap._deck = d;
-    bindEditorEvents_(wrap);
-  });
-}
 
 function optionsHtml_(names, selected) {
   return '<option value="">-</option>' + names.map(function (n) {
@@ -513,186 +608,153 @@ function optionsHtml_(names, selected) {
   }).join('');
 }
 
-function buildEditorHtml_(d) {
-  var charNames = state.characters.map(function (c) { return c.name; });
-  var petNames = state.pets.map(function (p) { return p.name; });
+/* =========================================================
+   관리자 인라인 편집 — 화면에 보이는 이미지/글자를 직접 클릭해서 수정
+========================================================= */
+function wireAdminInline_(container, deck) {
+  function refresh() { renderCurrentDeck(); }
 
-  var slotsHtml = (d.characters || []).map(function (c, i) {
-    return '<div class="slot-editor" data-idx="' + i + '">' +
-      '<div class="field-row">' +
-        '<label>열/순번</label>' +
-        '<select class="f-col"><option value="후열"' + (c.col === '후열' ? ' selected' : '') + '>후열</option>' +
-        '<option value="중열"' + (c.col === '중열' ? ' selected' : '') + '>중열</option>' +
-        '<option value="전열"' + (c.col === '전열' ? ' selected' : '') + '>전열</option></select>' +
-        '<select class="f-slot"><option value="1"' + (c.slot === 1 ? ' selected' : '') + '>1</option>' +
-        '<option value="2"' + (c.slot === 2 ? ' selected' : '') + '>2</option></select>' +
-        '<label>캐릭터</label>' +
-        '<select class="f-char">' + optionsHtml_(charNames, c.name) + '</select>' +
-        '<button class="small-btn danger f-remove" type="button">삭제</button>' +
-      '</div>' +
-      '<div class="grid2">' +
-        '<div><label>무기</label><input class="f-weapon" value="' + esc(c.weapon && c.weapon.name) + '" placeholder="아이템 이름"></div>' +
-        '<div><label>방어구</label><input class="f-armor" value="' + esc(c.armor && c.armor.name) + '" placeholder="아이템 이름"></div>' +
-        '<div><label>장신구</label><input class="f-item" value="' + esc(c.item && c.item.name) + '" placeholder="아이템 이름"></div>' +
-        '<div><label>룬</label><input class="f-rune" value="' + esc(c.rune && c.rune.name) + '" placeholder="아이템 이름"></div>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-
-  var petsHtml = ['후열', '중열', '전열'].map(function (pos) {
-    var p = (d.pets || []).find(function (x) { return x.pos === pos; }) || {};
-    return '<div class="field-row" data-pos="' + pos + '">' +
-      '<label>' + pos + ' 펫</label>' +
-      '<select class="f-pet">' + optionsHtml_(petNames, p.name) + '</select>' +
-    '</div>';
-  }).join('');
-
-  var cyclesHtml = (d.timeline && d.timeline.cycles || []).map(function (cy, ci) {
-    var stepsHtml = cy.steps.map(function (s, si) {
-      return '<div class="step-editor" data-si="' + si + '">' +
-        '<select class="f-step-char">' + optionsHtml_(charNames, s.name) + '</select>' +
-        '<input class="f-step-tag" placeholder="시간/배수 표기 (예: 33.1x)" value="' + esc(s.tag) + '">' +
-        '<input class="f-step-memo" placeholder="메모" value="' + esc(s.memo) + '">' +
-        '<button class="small-btn danger f-step-remove" type="button">×</button>' +
-      '</div>';
-    }).join('');
-    return '<div class="cycle-editor" data-ci="' + ci + '">' +
-      '<div class="field-row"><label>사이클명</label><input class="f-cycle-label" value="' + esc(cy.label) + '">' +
-      '<button class="small-btn danger f-cycle-remove" type="button">사이클 삭제</button></div>' +
-      '<div class="steps-holder">' + stepsHtml + '</div>' +
-      '<button class="small-btn f-step-add" type="button">+ 스텝 추가</button>' +
-    '</div>';
-  }).join('');
-
-  var warnHtml = (d.warnings || []).map(function (w, i) {
-    return '<div class="field-row" data-wi="' + i + '"><input class="f-warn" value="' + esc(w) + '"><button class="small-btn danger f-warn-remove" type="button">×</button></div>';
-  }).join('');
-
-  return '<div class="editor">' +
-    '<h2>덱 정보</h2>' +
-    '<div class="field-row"><label>덱 이름</label><input id="f-title" value="' + esc(d.title) + '"></div>' +
-    '<div class="field-row"><label>태그</label><input id="f-notetag" value="' + esc(d.noteTag) + '" placeholder="예: 시안 draft"></div>' +
-    '<div class="field-row"><label>보스 이미지</label><input id="f-boss" value="' + esc(d.bossIcon) + '" placeholder="이미지 URL"></div>' +
-
-    '<h2>캐릭터 배치 (전열/중열/후열, 각 1~2명)</h2>' +
-    '<div id="slots-holder">' + slotsHtml + '</div>' +
-    '<button class="small-btn f-slot-add" type="button">+ 캐릭터 추가</button>' +
-
-    '<h2>펫</h2>' +
-    '<div id="pets-holder">' + petsHtml + '</div>' +
-
-    '<h2>스킬 타임라인</h2>' +
-    '<div id="cycles-holder">' + cyclesHtml + '</div>' +
-    '<button class="small-btn f-cycle-add" type="button">+ 사이클 추가</button>' +
-
-    '<h2>주의사항</h2>' +
-    '<div id="warn-holder">' + warnHtml + '</div>' +
-    '<button class="small-btn f-warn-add" type="button">+ 주의사항 추가</button>' +
-
-    '<div class="save-bar">' +
-      '<span class="msg" id="save-msg"></span>' +
-      '<button class="small-btn danger" id="btn-delete" type="button">이 덱 삭제</button>' +
-      '<button class="primary" id="btn-save" type="button">저장</button>' +
-    '</div>' +
-  '</div>';
-}
-
-function bindEditorEvents_(wrap) {
-  var d = wrap._deck;
-
-  function refresh() { wrap.innerHTML = buildEditorHtml_(d); bindEditorEvents_(wrap); }
-  function preview() { document.getElementById('viewer').innerHTML = renderDeckHtml(d); }
-
-  wrap.querySelector('#f-title').oninput = function (e) { d.title = e.target.value; };
-  wrap.querySelector('#f-notetag').oninput = function (e) { d.noteTag = e.target.value; };
-  wrap.querySelector('#f-boss').oninput = function (e) { d.bossIcon = e.target.value; };
-
-  // 캐릭터 슬롯
-  wrap.querySelectorAll('#slots-holder .slot-editor').forEach(function (row) {
-    var idx = Number(row.dataset.idx);
-    var c = d.characters[idx];
-    row.querySelector('.f-col').onchange = function (e) { c.col = e.target.value; };
-    row.querySelector('.f-slot').onchange = function (e) { c.slot = Number(e.target.value); };
-    row.querySelector('.f-char').onchange = function (e) {
+  // 이미지 클릭 → 드롭다운 교체 계열
+  container.querySelectorAll('[data-edit-char]').forEach(function (sel) {
+    sel.onchange = function (e) {
+      var idx = Number(sel.dataset.editChar);
+      var c = deck.characters[idx];
       c.name = e.target.value;
       var lib = findChar_(c.name);
-      if (lib) { c.portrait = lib.portrait; c.card = { img: lib.card }; }
+      c.portrait = lib ? lib.portrait : '';
+      c.card = { img: lib ? lib.card : '' };
+      refresh();
     };
-    row.querySelector('.f-weapon').oninput = function (e) { c.weapon = gearFromInput_(e.target.value); };
-    row.querySelector('.f-armor').oninput = function (e) { c.armor = gearFromInput_(e.target.value); };
-    row.querySelector('.f-item').oninput = function (e) { c.item = gearFromInput_(e.target.value); };
-    row.querySelector('.f-rune').oninput = function (e) { c.rune = gearFromInput_(e.target.value); };
-    row.querySelector('.f-remove').onclick = function () { d.characters.splice(idx, 1); refresh(); };
   });
-  wrap.querySelector('.f-slot-add').onclick = function () {
-    d.characters.push({ col: '전열', slot: 1, name: '', portrait: '', weapon: {}, armor: {}, item: {}, rune: {}, card: {} });
-    refresh();
-  };
-
-  // 펫
-  wrap.querySelectorAll('#pets-holder .field-row').forEach(function (row) {
-    var pos = row.dataset.pos;
-    row.querySelector('.f-pet').onchange = function (e) {
+  container.querySelectorAll('[data-edit-gear]').forEach(function (sel) {
+    sel.onchange = function (e) {
+      var parts = sel.dataset.editGear.split(':');
+      var idx = Number(parts[0]), kind = parts[1];
+      deck.characters[idx][kind] = gearFromEquip_(kind, e.target.value);
+      refresh();
+    };
+  });
+  container.querySelectorAll('[data-edit-pet]').forEach(function (sel) {
+    sel.onchange = function (e) {
+      var pos = sel.dataset.editPet;
       var name = e.target.value;
-      d.pets = (d.pets || []).filter(function (p) { return p.pos !== pos; });
+      deck.pets = (deck.pets || []).filter(function (p) { return p.pos !== pos; });
       if (name) {
         var lib = findPet_(name);
-        d.pets.push({ pos: pos, name: name, img: lib ? lib.image : '' });
+        deck.pets.push({ pos: pos, name: name, img: lib ? lib.image : '' });
       }
+      refresh();
+    };
+  });
+  container.querySelectorAll('[data-edit-pos]').forEach(function (sel) {
+    sel.onchange = function (e) {
+      var idx = Number(sel.dataset.editPos);
+      var parts = e.target.value.split(':');
+      deck.characters[idx].col = parts[0];
+      deck.characters[idx].slot = Number(parts[1]);
+      refresh();
+    };
+  });
+  container.querySelectorAll('[data-edit-step]').forEach(function (sel) {
+    sel.onchange = function (e) {
+      var parts = sel.dataset.editStep.split(':');
+      var ci = Number(parts[0]), si = Number(parts[1]);
+      var s = deck.timeline.cycles[ci].steps[si];
+      s.name = e.target.value;
+      var lib = findChar_(s.name);
+      s.img = lib ? lib.portrait : '';
+      refresh();
+    };
+  });
+  container.querySelectorAll('[data-edit-boss]').forEach(function (el) {
+    el.onclick = function () {
+      var v = prompt('보스 이미지 URL을 입력하세요', deck.bossIcon || '');
+      if (v === null) return;
+      deck.bossIcon = v.trim();
+      refresh();
     };
   });
 
-  // 타임라인 사이클/스텝
-  wrap.querySelectorAll('#cycles-holder .cycle-editor').forEach(function (cyRow) {
-    var ci = Number(cyRow.dataset.ci);
-    var cy = d.timeline.cycles[ci];
-    cyRow.querySelector('.f-cycle-label').oninput = function (e) { cy.label = e.target.value; };
-    cyRow.querySelector('.f-cycle-remove').onclick = function () { d.timeline.cycles.splice(ci, 1); refresh(); };
-    cyRow.querySelectorAll('.f-step-remove').forEach(function (btn, si) {
-      btn.onclick = function () { cy.steps.splice(si, 1); refresh(); };
+  // 글자 클릭 → 바로 수정 (contenteditable). 재렌더링 없이 데이터만 갱신해서 커서 위치 유지.
+  container.querySelectorAll('[contenteditable="true"]').forEach(function (el) {
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
     });
-    cyRow.querySelectorAll('.step-editor').forEach(function (stepRow) {
-      var si = Number(stepRow.dataset.si);
-      var s = cy.steps[si];
-      stepRow.querySelector('.f-step-char').onchange = function (e) {
-        s.name = e.target.value;
-        var lib = findChar_(s.name);
-        s.img = lib ? lib.portrait : '';
-      };
-      stepRow.querySelector('.f-step-tag').oninput = function (e) { s.tag = e.target.value; };
-      stepRow.querySelector('.f-step-memo').oninput = function (e) { s.memo = e.target.value; };
-    });
-    cyRow.querySelector('.f-step-add').onclick = function () { cy.steps.push({ name: '', img: '', tag: '', memo: '' }); refresh(); };
   });
-  wrap.querySelector('.f-cycle-add').onclick = function () {
-    if (!d.timeline) d.timeline = { cycles: [] };
-    d.timeline.cycles.push({ label: (d.timeline.cycles.length + 1) + '사이클', steps: [] });
+  container.querySelectorAll('[data-field]').forEach(function (el) {
+    el.oninput = function () { deck[el.dataset.field] = el.textContent.trim(); };
+  });
+  container.querySelectorAll('[data-step-field]').forEach(function (el) {
+    el.oninput = function () {
+      var parts = el.dataset.stepField.split(':');
+      deck.timeline.cycles[Number(parts[1])].steps[Number(parts[2])][parts[0]] = el.textContent.trim();
+    };
+  });
+  container.querySelectorAll('[data-cycle-field]').forEach(function (el) {
+    el.oninput = function () { deck.timeline.cycles[Number(el.dataset.cycleField)].label = el.textContent.trim(); };
+  });
+  container.querySelectorAll('[data-warn-field]').forEach(function (el) {
+    el.oninput = function () { deck.warnings[Number(el.dataset.warnField)] = el.textContent.trim(); };
+  });
+
+  // 삭제 버튼
+  container.querySelectorAll('[data-remove-char]').forEach(function (btn) {
+    btn.onclick = function () { deck.characters.splice(Number(btn.dataset.removeChar), 1); refresh(); };
+  });
+  container.querySelectorAll('[data-remove-step]').forEach(function (btn) {
+    btn.onclick = function () {
+      var parts = btn.dataset.removeStep.split(':');
+      deck.timeline.cycles[Number(parts[0])].steps.splice(Number(parts[1]), 1);
+      refresh();
+    };
+  });
+  container.querySelectorAll('[data-remove-cycle]').forEach(function (btn) {
+    btn.onclick = function () { deck.timeline.cycles.splice(Number(btn.dataset.removeCycle), 1); refresh(); };
+  });
+  container.querySelectorAll('[data-remove-warn]').forEach(function (btn) {
+    btn.onclick = function () { deck.warnings.splice(Number(btn.dataset.removeWarn), 1); refresh(); };
+  });
+
+  // 추가 버튼
+  var addCharBtn = container.querySelector('[data-add-char]');
+  if (addCharBtn) addCharBtn.onclick = function () {
+    deck.characters = deck.characters || [];
+    deck.characters.push({ col: '전열', slot: 1, name: '', portrait: '', weapon: {}, armor: {}, item: {}, rune: {}, card: {} });
     refresh();
   };
-
-  // 주의사항
-  wrap.querySelectorAll('#warn-holder .field-row').forEach(function (row) {
-    var wi = Number(row.dataset.wi);
-    row.querySelector('.f-warn').oninput = function (e) { d.warnings[wi] = e.target.value; };
-    row.querySelector('.f-warn-remove').onclick = function () { d.warnings.splice(wi, 1); refresh(); };
+  container.querySelectorAll('[data-add-step]').forEach(function (btn) {
+    btn.onclick = function () {
+      var ci = Number(btn.dataset.addStep);
+      deck.timeline.cycles[ci].steps.push({ name: '', img: '', tag: '', memo: '' });
+      refresh();
+    };
   });
-  wrap.querySelector('.f-warn-add').onclick = function () {
-    if (!d.warnings) d.warnings = [];
-    d.warnings.push('');
+  var addCycleBtn = container.querySelector('[data-add-cycle]');
+  if (addCycleBtn) addCycleBtn.onclick = function () {
+    if (!deck.timeline) deck.timeline = { cycles: [] };
+    deck.timeline.cycles.push({ label: (deck.timeline.cycles.length + 1) + '사이클', steps: [] });
     refresh();
   };
-
-  // 실시간 미리보기 (입력할 때마다 갱신하고 싶다면 각 이벤트 뒤에 preview() 호출)
-  wrap.addEventListener('input', preview);
-  wrap.addEventListener('change', preview);
-
-  wrap.querySelector('#btn-save').onclick = function () { saveDeck_ui(d); };
-  wrap.querySelector('#btn-delete').onclick = function () { deleteDeck_ui(d.id); };
+  var addWarnBtn = container.querySelector('[data-add-warn]');
+  if (addWarnBtn) addWarnBtn.onclick = function () {
+    deck.warnings = deck.warnings || [];
+    deck.warnings.push('');
+    refresh();
+  };
 }
 
-function gearFromInput_(name) {
+function wireAdminBar_(deck) {
+  document.getElementById('admin-save-btn').onclick = function () { saveDeck_ui(deck); };
+  document.getElementById('admin-delete-btn').onclick = function () { deleteDeck_ui(deck.id); };
+  document.getElementById('admin-revert-btn').onclick = function () {
+    if (!confirm('저장하지 않은 수정 내용을 취소하고 마지막 저장 상태로 되돌릴까요?')) return;
+    if (state.currentId) selectDeck(state.currentId);
+  };
+}
+
+function gearFromEquip_(kind, name) {
   if (!name) return { name: '', icon: '' };
-  var lib = findIcon_(name);
+  var lib = findEquip_(kind, name);
   return { name: name, icon: lib ? lib.image : '' };
 }
 
@@ -722,8 +784,7 @@ function deleteDeck_ui(id) {
       state.decks = state.decks.filter(function (x) { return x.id !== id; });
       state.currentId = null;
       state.currentDeck = null;
-      document.getElementById('viewer').innerHTML = '<div class="deck"><div class="empty">왼쪽에서 덱을 선택하세요</div></div>';
-      document.getElementById('editor-wrap').innerHTML = '';
+      renderCurrentDeck();
       renderDeckList();
     } else {
       alert('삭제 실패: ' + (res.error || ''));
