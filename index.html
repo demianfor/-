@@ -231,6 +231,19 @@
   .cycle-label-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
   .cycle-label-row .tile-remove { position: static; width: auto; height: auto; border-radius: 5px; padding: 2px 8px; font-size: 10.5px; background: var(--red); }
   .title-boss.editable { pointer-events: auto; cursor: pointer; }
+
+  /* ---- 드래그로 순서/자리 바꾸기 (캐릭터 세트 / 펫 / 스킬 타임라인 스텝 공통) ---- */
+  .drag-handle {
+    position: absolute; bottom: 6px; right: 6px; z-index: 3; width: 22px; height: 20px; line-height: 18px;
+    text-align: center; padding: 0; border-radius: 6px; border: none; background: rgba(0,0,0,0.55);
+    color: #fff; font-size: 13px; cursor: grab; touch-action: none; user-select: none;
+  }
+  .drag-handle:active { cursor: grabbing; }
+  /* .step에서는 step-num(좌상단)·삭제버튼(우상단)과 겹치지 않도록 바로 오른쪽에 배치 */
+  .drag-handle.small { top: -4px; left: 22px; bottom: auto; right: auto; width: 16px; height: 16px; line-height: 14px; font-size: 10px; }
+  .drag-source { opacity: 0.3; }
+  .drag-over { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 10px; }
+  .drag-ghost { position: fixed; pointer-events: none; z-index: 999; opacity: 0.9; box-shadow: 0 8px 24px rgba(0,0,0,0.5); margin: 0 !important; }
 </style>
 </head>
 <body>
@@ -455,8 +468,9 @@ function renderDeckHtml(deck, editable) {
       : '<div class="badge ' + COL_BADGE[c.col] + '">' + c.slot + '</div>';
     var overlay = editable ? '<select class="tile-overlay" data-edit-char="' + idx + '">' + optionsHtml_(state.characters, c.name) + '</select>' : '';
     var removeBtn = editable ? '<button type="button" class="tile-remove" data-remove-char="' + idx + '" title="캐릭터 삭제">×</button>' : '';
-    return '<div class="card-char' + (editable ? ' editable' : '') + '"><img src="' + esc(c.portrait) + '">' +
-      badge + '<div class="name">' + esc(c.name) + '</div>' + overlay + removeBtn + '</div>';
+    var dragHandle = editable ? '<button type="button" class="drag-handle" data-drag-handle="set" title="드래그해서 이 세트(캐릭터·장비·카드)를 다른 자리와 바꾸기">⠿</button>' : '';
+    return '<div class="card-char' + (editable ? ' editable' : '') + '"' + (editable ? ' data-drag-set="' + idx + '"' : '') + '><img src="' + esc(c.portrait) + '">' +
+      badge + '<div class="name">' + esc(c.name) + '</div>' + overlay + removeBtn + dragHandle + '</div>';
   }).join('');
 
   var gearRow1 = chars.map(function (c) {
@@ -484,8 +498,9 @@ function renderDeckHtml(deck, editable) {
   var petsHtml = posList.map(function (pos) {
     var p = pets.find(function (x) { return x.pos === pos; }) || { pos: pos, name: '', img: '' };
     var overlay = editable ? '<select class="tile-overlay" data-edit-pet="' + pos + '">' + optionsHtml_(state.pets, p.name) + '</select>' : '';
+    var dragHandle = editable ? '<button type="button" class="drag-handle" data-drag-handle="pet" title="드래그해서 자리 바꾸기">⠿</button>' : '';
     return '<div><div class="pet-pos">' + esc(pos) + ' 펫</div>' +
-      '<div class="pet-card' + (editable ? ' editable' : '') + '"><img src="' + esc(p.img) + '"><div class="name">' + esc(p.name) + '</div>' + overlay + '</div></div>';
+      '<div class="pet-card' + (editable ? ' editable' : '') + '"' + (editable ? ' data-drag-pet="' + esc(pos) + '"' : '') + '><img src="' + esc(p.img) + '"><div class="name">' + esc(p.name) + '</div>' + overlay + dragHandle + '</div></div>';
   }).join('');
 
   // position box: 컬럼별 그룹핑, slot 오름차순 (1 위 / 2 아래) — 배치 미리보기, 읽기 전용
@@ -503,6 +518,10 @@ function renderDeckHtml(deck, editable) {
   var positionBoxHtml = '<div class="position-box"><div class="headers"><div>후열</div><div>중열</div><div>전열</div></div>' +
     '<div class="cols">' + posColHtml('후열') + posColHtml('중열') + posColHtml('전열') + '</div></div>';
 
+  // 스킬 타임라인에는 이 덱에 실제로 들어있는 5명(위쪽 캐릭터 줄)만 후보로 보여준다.
+  // 다른 캐릭터가 타임라인에 들어갈 일은 없으므로 전체 라이브러리 대신 이 목록만 쓴다.
+  var deckCharOptions = chars.filter(function (c) { return c.name; }).map(function (c) { return { name: c.name }; });
+
   var timelineHtml = '';
   if (editable || (deck.timeline && deck.timeline.cycles && deck.timeline.cycles.length)) {
     var cycles = (deck.timeline && deck.timeline.cycles) || [];
@@ -510,7 +529,7 @@ function renderDeckHtml(deck, editable) {
       var stepsHtml = cy.steps.map(function (s, si) {
         var isLast = si === cy.steps.length - 1;
         var arrow = (!isLast || editable) ? '<div class="arrow">→</div>' : '';
-        var charOverlay = editable ? '<select class="tile-overlay small" data-edit-step="' + ci + ':' + si + '">' + optionsHtml_(state.characters, s.name) + '</select>' : '';
+        var charOverlay = editable ? '<select class="tile-overlay small" data-edit-step="' + ci + ':' + si + '">' + optionsHtml_(deckCharOptions, s.name) + '</select>' : '';
         var tagHtml = editable
           ? '<div class="step-time editable-text" contenteditable="true" data-step-field="tag:' + ci + ':' + si + '" data-placeholder="배수">' + esc(s.tag) + '</div>'
           : (s.tag ? '<div class="step-time">' + esc(s.tag) + '</div>' : '');
@@ -518,9 +537,10 @@ function renderDeckHtml(deck, editable) {
           ? '<div class="step-memo editable-text" contenteditable="true" data-step-field="memo:' + ci + ':' + si + '" data-placeholder="메모">' + esc(s.memo) + '</div>'
           : (s.memo ? '<div class="step-memo">' + esc(s.memo) + '</div>' : '');
         var removeBtn = editable ? '<button type="button" class="tile-remove small" data-remove-step="' + ci + ':' + si + '" title="스텝 삭제">×</button>' : '';
-        return '<div class="step' + (editable ? ' editable' : '') + '"><div class="step-num">' + (si + 1) + '</div>' +
+        var dragHandle = editable ? '<button type="button" class="drag-handle small" data-drag-handle="step" title="드래그해서 순서 바꾸기">⠿</button>' : '';
+        return '<div class="step' + (editable ? ' editable' : '') + '"' + (editable ? ' data-drag-step="' + ci + ':' + si + '"' : '') + '><div class="step-num">' + (si + 1) + '</div>' +
           '<img src="' + esc(s.img) + '"><div class="step-name">' + esc(s.name) + '</div>' +
-          tagHtml + memoHtml + charOverlay + removeBtn +
+          tagHtml + memoHtml + charOverlay + removeBtn + dragHandle +
           '</div>' + arrow;
       }).join('');
       var addStepBtn = editable ? '<button type="button" class="add-btn small" data-add-step="' + ci + '">+ 스텝 추가</button>' : '';
@@ -582,11 +602,24 @@ function gearCell_(g, idx, kind, editable) {
 /* =========================================================
    관리자 편집 폼
 ========================================================= */
+function blankCharSlot_(col, slot) {
+  return { col: col, slot: slot, name: '', portrait: '', weapon: {}, armor: {}, item: {}, rune: {}, card: {} };
+}
+
 function newDeck() {
   var id = 'deck_' + Date.now();
   var blank = {
     id: id, title: '새 덱', noteTag: '', bossIcon: '',
-    characters: [], pets: [], timeline: { cycles: [] }, warnings: []
+    // 대부분의 덱은 5명(후열1 · 중열2 · 전열2) 구성이라 기본으로 5칸을 미리 만들어 둔다.
+    // 필요하면 "+ 캐릭터 추가"로 더 넣거나, 빈 칸을 그대로 두면 저장 시 제외된다.
+    characters: [
+      blankCharSlot_('후열', 1),
+      blankCharSlot_('중열', 1),
+      blankCharSlot_('중열', 2),
+      blankCharSlot_('전열', 1),
+      blankCharSlot_('전열', 2)
+    ],
+    pets: [], timeline: { cycles: [] }, warnings: []
   };
   state.currentId = id;
   state.currentDeck = blank;
@@ -627,10 +660,129 @@ function optionsHtml_(list, selected) {
 }
 
 /* =========================================================
+   드래그로 자리 바꾸기 — 캐릭터 세트(캐릭터+장비+카드) / 펫 / 스킬 타임라인 스텝 공통.
+   Pointer Events 기반이라 마우스와 모바일 터치 모두에서 동작한다(손가락으로 꾹 누른 채 이동).
+   각 항목의 "⠿" 손잡이를 누르고 있다가 다른 항목 위로 옮기면 두 항목이 서로 자리를 바꾼다.
+========================================================= */
+var _dragCtl = { active: null, inited: false };
+
+function initDragReorderOnce_() {
+  if (_dragCtl.inited) return;
+  _dragCtl.inited = true;
+
+  function clearDragOver(st) {
+    st.container.querySelectorAll('.drag-over').forEach(function (el) { el.classList.remove('drag-over'); });
+  }
+
+  document.addEventListener('pointermove', function (e) {
+    var st = _dragCtl.active;
+    if (!st || e.pointerId !== st.pointerId) return;
+    var dx = e.clientX - st.startX, dy = e.clientY - st.startY;
+    if (!st.moved) {
+      if (Math.hypot(dx, dy) < 6) return;
+      st.moved = true;
+      var rect = st.item.getBoundingClientRect();
+      var ghost = st.item.cloneNode(true);
+      ghost.classList.add('drag-ghost');
+      ghost.style.left = rect.left + 'px';
+      ghost.style.top = rect.top + 'px';
+      ghost.style.width = rect.width + 'px';
+      ghost.style.height = rect.height + 'px';
+      document.body.appendChild(ghost);
+      st.ghost = ghost;
+      st.item.classList.add('drag-source');
+    }
+    st.ghost.style.left = (e.clientX - st.offsetX) + 'px';
+    st.ghost.style.top = (e.clientY - st.offsetY) + 'px';
+    st.ghost.style.display = 'none';
+    var elUnder = document.elementFromPoint(e.clientX, e.clientY);
+    st.ghost.style.display = '';
+    var targetItem = elUnder && elUnder.closest ? elUnder.closest('[' + st.itemAttr + ']') : null;
+    clearDragOver(st);
+    if (targetItem && targetItem !== st.item) {
+      targetItem.classList.add('drag-over');
+      st.targetKey = targetItem.getAttribute(st.itemAttr);
+    } else {
+      st.targetKey = null;
+    }
+  });
+
+  function endDrag(e) {
+    var st = _dragCtl.active;
+    if (!st || e.pointerId !== st.pointerId) return;
+    if (st.ghost) st.ghost.remove();
+    if (st.item) st.item.classList.remove('drag-source');
+    clearDragOver(st);
+    if (st.moved && st.targetKey && st.targetKey !== st.key) {
+      st.onDrop(st.key, st.targetKey);
+    }
+    _dragCtl.active = null;
+  }
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
+}
+
+// container: 다시 그려질 때마다 새로 넘겨받는 루트 엘리먼트.
+// handleSelector: 손잡이 버튼 셀렉터 (예: '[data-drag-handle="set"]').
+// itemAttr: 손잡이가 속한 항목을 식별하는 data-* 속성 이름 (예: 'data-drag-set').
+// onDrop(sourceKey, targetKey): 두 항목을 서로 바꿔치기하는 콜백.
+function wireDragReorder_(container, handleSelector, itemAttr, onDrop) {
+  initDragReorderOnce_();
+  container.querySelectorAll(handleSelector).forEach(function (handle) {
+    handle.addEventListener('pointerdown', function (e) {
+      var item = handle.closest('[' + itemAttr + ']');
+      if (!item) return;
+      e.preventDefault();
+      var rect = item.getBoundingClientRect();
+      _dragCtl.active = {
+        pointerId: e.pointerId,
+        key: item.getAttribute(itemAttr),
+        item: item,
+        container: container,
+        itemAttr: itemAttr,
+        startX: e.clientX, startY: e.clientY,
+        offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top,
+        moved: false, ghost: null, targetKey: null,
+        onDrop: onDrop
+      };
+    });
+  });
+}
+
+/* =========================================================
    관리자 인라인 편집 — 화면에 보이는 이미지/글자를 직접 클릭해서 수정
 ========================================================= */
 function wireAdminInline_(container, deck) {
   function refresh() { renderCurrentDeck(); }
+
+  // 드래그로 자리 바꾸기: 캐릭터 세트(캐릭터+장비+카드가 한 세트) / 펫 / 스킬 타임라인 스텝
+  wireDragReorder_(container, '[data-drag-handle="set"]', 'data-drag-set', function (srcKey, tgtKey) {
+    var a = deck.characters[Number(srcKey)], b = deck.characters[Number(tgtKey)];
+    if (!a || !b) return;
+    var tmpCol = a.col, tmpSlot = a.slot;
+    a.col = b.col; a.slot = b.slot;
+    b.col = tmpCol; b.slot = tmpSlot;
+    refresh();
+  });
+  wireDragReorder_(container, '[data-drag-handle="pet"]', 'data-drag-pet', function (srcKey, tgtKey) {
+    var pets = deck.pets || [];
+    var a = pets.find(function (p) { return p.pos === srcKey; });
+    var b = pets.find(function (p) { return p.pos === tgtKey; });
+    if (a) a.pos = tgtKey;
+    if (b) b.pos = srcKey;
+    refresh();
+  });
+  wireDragReorder_(container, '[data-drag-handle="step"]', 'data-drag-step', function (srcKey, tgtKey) {
+    var sp = srcKey.split(':'), tp = tgtKey.split(':');
+    var sArr = deck.timeline.cycles[Number(sp[0])] && deck.timeline.cycles[Number(sp[0])].steps;
+    var tArr = deck.timeline.cycles[Number(tp[0])] && deck.timeline.cycles[Number(tp[0])].steps;
+    if (!sArr || !tArr) return;
+    var si = Number(sp[1]), ti = Number(tp[1]);
+    var tmp = sArr[si];
+    sArr[si] = tArr[ti];
+    tArr[ti] = tmp;
+    refresh();
+  });
 
   // 이미지 클릭 → 드롭다운 교체 계열
   container.querySelectorAll('[data-edit-char]').forEach(function (sel) {
@@ -790,7 +942,11 @@ function saveDeck_ui(d) {
   var msg = document.getElementById('save-msg');
   msg.textContent = '저장 중...';
   msg.className = 'msg';
-  api('save', {}, 'POST', { pw: state.adminPw, deck: d, who: '관리자' }).then(function (res) {
+  // 새 덱을 만들 때 미리 깔아둔 빈 캐릭터 칸(이름 미지정)은 저장에서 제외한다.
+  var payload = Object.assign({}, d, {
+    characters: (d.characters || []).filter(function (c) { return c.name; })
+  });
+  api('save', {}, 'POST', { pw: state.adminPw, deck: payload, who: '관리자' }).then(function (res) {
     if (res.ok) {
       msg.textContent = '저장되었습니다.';
       msg.className = 'msg ok';
