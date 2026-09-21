@@ -103,6 +103,29 @@
   .deck-picker .newdeck { background: var(--panel2); border: 1px dashed var(--border); color: var(--muted); }
   .deck-picker .empty { color: var(--muted); font-size: 13px; padding: 8px 4px; }
 
+  /* ---------- 그룹 선택 (요일/던전/모드) ---------- */
+  .group-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .group-tabs .item {
+    padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text);
+    background: var(--panel); border: 1px solid var(--border); white-space: nowrap;
+  }
+  .group-tabs .item:hover { background: var(--panel2); }
+  .group-tabs .item.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .group-tabs .back { background: var(--panel2); border: 1px dashed var(--border); color: var(--muted); font-weight: 500; }
+  .group-tabs .empty { color: var(--muted); font-size: 13px; padding: 8px 4px; }
+
+  /* ---------- 로딩 표시 ---------- */
+  .loading-msg {
+    display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px;
+    padding: 10px 4px;
+  }
+  .loading-msg .spinner {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--border); border-top-color: var(--blue);
+    animation: gn-spin 0.7s linear infinite;
+  }
+  @keyframes gn-spin { to { transform: rotate(360deg); } }
+
   /* ---------- 관리자: 덱 카테고리 지정 ---------- */
   .cat-assign { display: flex; gap: 6px; margin: 0 0 10px; }
   .cat-assign button {
@@ -329,12 +352,13 @@
 
 <div class="layout">
   <div class="category-tabs" id="category-tabs"></div>
-  <div class="deck-picker" id="deck-picker">
+  <div class="group-tabs" id="group-picker">
     <div class="empty">불러오는 중...</div>
   </div>
+  <div class="deck-picker" id="deck-picker"></div>
   <div class="main">
     <div id="admin-hint" style="display:none">관리자 모드: 이미지를 클릭하면 바로 바꿀 수 있고, 글자를 클릭하면 바로 고칠 수 있어요.</div>
-    <div id="viewer"><div class="deck"><div class="empty">위에서 덱을 선택하세요</div></div></div>
+    <div id="viewer"><div class="deck"><div class="empty">위쪽 메뉴에서 덱을 선택하세요</div></div></div>
     <div id="admin-bar" class="save-bar" style="display:none">
       <span id="save-msg" class="msg"></span>
       <button class="small-btn danger" id="admin-delete-btn" type="button">이 덱 삭제</button>
@@ -357,6 +381,7 @@ var state = {
   isAdmin: false,
   decks: [],
   category: '레이드', // 상단 카테고리 탭(레이드/아발론/대난투) 중 현재 선택된 것
+  group: null, // 카테고리 안의 그룹(요일/던전/모드) 중 현재 선택된 것. null이면 그룹 선택 단계.
   currentId: null,
   currentDeck: null,
   characters: [],
@@ -396,9 +421,11 @@ function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"']/g, functi
 /* ---------- 로그인 ---------- */
 function tryLogin() {
   var pw = document.getElementById('gate-pw').value;
-  document.getElementById('gate-err').textContent = '';
+  var errEl = document.getElementById('gate-err');
+  errEl.textContent = '잠시 기다려주세요...';
   api('list', { pw: pw }).then(function (res) {
     if (res.ok) {
+      errEl.textContent = '';
       state.viewPw = pw;
       try { localStorage.setItem('gn_view_pw', pw); } catch (e) {}
       document.getElementById('gate').style.display = 'none';
@@ -408,10 +435,10 @@ function tryLogin() {
       try { savedAdmin = localStorage.getItem('gn_admin_pw'); } catch (e) {}
       if (savedAdmin) tryAdminLogin(savedAdmin, true);
     } else {
-      document.getElementById('gate-err').textContent = '비밀번호가 올바르지 않습니다.';
+      errEl.textContent = '비밀번호가 올바르지 않습니다.';
     }
   }).catch(function () {
-    document.getElementById('gate-err').textContent = 'API_URL 설정을 확인해주세요.';
+    errEl.textContent = 'API_URL 설정을 확인해주세요.';
   });
 }
 
@@ -431,6 +458,9 @@ function onAdminBtn() {
 }
 
 function tryAdminLogin(pw, silent) {
+  var btn = document.getElementById('admin-btn');
+  var prevText = btn.textContent;
+  if (!silent) btn.textContent = '확인 중...';
   api('checkAdmin', { pw: pw }).then(function (res) {
     if (res.ok && res.isAdmin) {
       state.isAdmin = true;
@@ -440,16 +470,32 @@ function tryAdminLogin(pw, silent) {
       document.getElementById('admin-btn').classList.add('admin-on');
       renderDeckList();
       loadLibraries().then(renderCurrentDeck);
-    } else if (!silent) {
-      alert('관리자 비밀번호가 올바르지 않습니다.');
+    } else {
+      if (!silent) {
+        btn.textContent = prevText;
+        alert('관리자 비밀번호가 올바르지 않습니다.');
+      }
+    }
+  }).catch(function () {
+    if (!silent) {
+      btn.textContent = prevText;
+      alert('통신 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     }
   });
 }
 
-/* ---------- 카테고리 탭 + 덱 선택(상단) ---------- */
+/* ---------- 카테고리(레이드/아발론/대난투) → 그룹(요일/던전/모드) → 번호, 3단계 덱 선택 ---------- */
 var CATEGORIES = ['레이드', '아발론', '대난투'];
+// 카테고리별 그룹 순서(정렬 기준). 실제 덱에 있는 group 값만 이 순서대로 노출되고,
+// 이 목록에 없는 group 값이 덱에 있으면 뒤쪽에 추가로 붙는다.
+var GROUP_ORDER = {
+  '레이드': ['월', '화', '수', '목', '금', '토(마법덱)', '토(물리덱)', '일'],
+  '아발론': ['엘다리아 성문', '엘다리아 보스', '엘아이아 성문', '엘아이아 보스'],
+  '대난투': ['산양', '흑랑', '카우', '묘족']
+};
 
 function deckCategory_(d) { return d.category || CATEGORIES[0]; } // 카테고리 없는 예전 덱은 "레이드"로 취급
+function deckGroup_(d) { return d.group || ''; } // 그룹 없는 예전 덱은 빈 그룹으로 취급
 
 function renderCategoryTabs() {
   var el = document.getElementById('category-tabs');
@@ -460,8 +506,10 @@ function renderCategoryTabs() {
 
 function selectCategory(cat) {
   state.category = cat;
+  state.group = null;
   renderCategoryTabs();
-  renderDeckPicker();
+  renderGroupPicker();
+  document.getElementById('deck-picker').innerHTML = '';
   // 지금 보고 있는 덱이 이 카테고리에 없으면 선택 해제
   var stillHere = state.decks.some(function (d) { return d.id === state.currentId && deckCategory_(d) === cat; });
   if (!stillHere) {
@@ -471,31 +519,78 @@ function selectCategory(cat) {
   }
 }
 
-function renderDeckPicker() {
-  var el = document.getElementById('deck-picker');
-  var decksInCat = state.decks.filter(function (d) { return deckCategory_(d) === state.category; });
-  var html = decksInCat.map(function (d) {
-    return '<div class="item' + (d.id === state.currentId ? ' active' : '') + '" onclick="selectDeck(\'' + d.id + '\')">' + esc(d.title) + '</div>';
-  }).join('');
-  if (state.isAdmin) {
-    html += '<button type="button" class="item newdeck" onclick="newDeck()">+ 새 덱 만들기</button>';
-  }
-  el.innerHTML = html || '<div class="empty">이 카테고리에 등록된 덱이 없습니다</div>';
+// 카테고리 안의 그룹 목록을 정해진 순서대로 구한다 (실제 덱에 있는 그룹만).
+function groupsInCategory_(cat) {
+  var decksInCat = state.decks.filter(function (d) { return deckCategory_(d) === cat; });
+  var present = {};
+  decksInCat.forEach(function (d) { if (deckGroup_(d)) present[deckGroup_(d)] = true; });
+  var order = GROUP_ORDER[cat] || [];
+  var out = order.filter(function (g) { return present[g]; });
+  Object.keys(present).forEach(function (g) { if (out.indexOf(g) === -1) out.push(g); });
+  return out;
 }
 
-// 예전 renderDeckList() 호출부와의 호환을 위해 유지: 탭+피커를 한번에 다시 그린다.
+function renderGroupPicker() {
+  var el = document.getElementById('group-picker');
+  var groups = groupsInCategory_(state.category);
+  if (!groups.length) {
+    // 그룹 구분이 없는(예전) 덱만 있는 카테고리는 그룹 단계를 건너뛰고 바로 번호 목록을 보여준다.
+    el.innerHTML = '';
+    renderDeckPicker();
+    return;
+  }
+  var html = groups.map(function (g) {
+    return '<div class="item' + (g === state.group ? ' active' : '') + '" onclick="selectGroup(\'' + esc(g).replace(/'/g, "\\'") + '\')">' + esc(g) + '</div>';
+  }).join('');
+  el.innerHTML = html;
+  renderDeckPicker();
+}
+
+function selectGroup(g) {
+  state.group = g;
+  renderGroupPicker();
+}
+
+function renderDeckPicker() {
+  var el = document.getElementById('deck-picker');
+  var groups = groupsInCategory_(state.category);
+  var decksInCat = state.decks.filter(function (d) { return deckCategory_(d) === state.category; });
+  var decksToShow;
+  if (groups.length) {
+    // 그룹 단계가 있는 카테고리는 그룹을 고르기 전엔 번호 목록을 비워둔다.
+    if (!state.group) { el.innerHTML = ''; return; }
+    decksToShow = decksInCat.filter(function (d) { return deckGroup_(d) === state.group; });
+  } else {
+    decksToShow = decksInCat;
+  }
+  var html = decksToShow.map(function (d, i) {
+    return '<div class="item' + (d.id === state.currentId ? ' active' : '') + '" onclick="selectDeck(\'' + d.id + '\')">' + esc(d.title) + '</div>';
+  }).join('');
+  if (state.isAdmin && (!groups.length || state.group)) {
+    html += '<button type="button" class="item newdeck" onclick="newDeck()">+ 새 덱 만들기</button>';
+  }
+  el.innerHTML = html || '<div class="empty">등록된 덱이 없습니다</div>';
+}
+
+// 예전 renderDeckList() 호출부와의 호환을 위해 유지: 탭+그룹+번호를 한번에 다시 그린다.
 function renderDeckList() {
   renderCategoryTabs();
-  renderDeckPicker();
+  renderGroupPicker();
 }
 
 function selectDeck(id) {
   state.currentId = id;
   renderDeckList();
+  document.getElementById('viewer').innerHTML =
+    '<div class="deck"><div class="loading-msg"><span class="spinner"></span>덱을 불러오는 중입니다...</div></div>';
+  document.getElementById('admin-bar').style.display = 'none';
+  document.getElementById('admin-hint').style.display = 'none';
   api('get', { pw: state.viewPw, id: id }).then(function (res) {
     if (!res.ok) { document.getElementById('viewer').innerHTML = '<div class="deck"><div class="empty">불러오기 실패</div></div>'; return; }
     state.currentDeck = res.deck;
     if (state.isAdmin) { loadLibraries().then(renderCurrentDeck); } else { renderCurrentDeck(); }
+  }).catch(function () {
+    document.getElementById('viewer').innerHTML = '<div class="deck"><div class="empty">불러오기 실패</div></div>';
   });
 }
 
@@ -504,7 +599,7 @@ function renderCurrentDeck() {
   var viewer = document.getElementById('viewer');
   var deck = state.currentDeck;
   if (!deck) {
-    viewer.innerHTML = '<div class="deck"><div class="empty">왼쪽에서 덱을 선택하세요</div></div>';
+    viewer.innerHTML = '<div class="deck"><div class="empty">위쪽 메뉴에서 덱을 선택하세요</div></div>';
     document.getElementById('admin-bar').style.display = 'none';
     document.getElementById('admin-hint').style.display = 'none';
     return;
@@ -703,7 +798,7 @@ function blankCharSlot_(col, slot) {
 function newDeck() {
   var id = 'deck_' + Date.now();
   var blank = {
-    id: id, title: '새 덱', category: state.category, noteTag: '', bossIcon: '',
+    id: id, title: '새 덱', category: state.category, group: state.group || '', noteTag: '', bossIcon: '',
     // 대부분의 덱은 5명(후열1 · 중열2 · 전열2) 구성이라 기본으로 5칸을 미리 만들어 둔다.
     // 필요하면 "+ 캐릭터 추가"로 더 넣거나, 빈 칸을 그대로 두면 저장 시 제외된다.
     characters: [
@@ -717,8 +812,10 @@ function newDeck() {
   };
   state.currentId = id;
   state.currentDeck = blank;
-  state.decks.push({ id: id, title: '새 덱', category: state.category });
+  state.decks.push({ id: id, title: '새 덱', category: state.category, group: state.group || '' });
   renderDeckList();
+  document.getElementById('viewer').innerHTML =
+    '<div class="deck"><div class="loading-msg"><span class="spinner"></span>불러오는 중입니다...</div></div>';
   loadLibraries().then(renderCurrentDeck);
 }
 
@@ -1061,8 +1158,8 @@ function saveDeck_ui(d) {
       msg.className = 'msg ok';
       state.currentDeck = d;
       var found = state.decks.find(function (x) { return x.id === d.id; });
-      if (found) { found.title = d.title; found.category = d.category; }
-      else state.decks.push({ id: d.id, title: d.title, category: d.category });
+      if (found) { found.title = d.title; found.category = d.category; found.group = d.group || ''; }
+      else state.decks.push({ id: d.id, title: d.title, category: d.category, group: d.group || '' });
       renderDeckList();
     } else {
       msg.textContent = '저장 실패: ' + (res.error || '');
@@ -1073,6 +1170,8 @@ function saveDeck_ui(d) {
 
 function deleteDeck_ui(id) {
   if (!confirm('이 덱을 삭제할까요? 되돌릴 수 없습니다.')) return;
+  var msg = document.getElementById('save-msg');
+  if (msg) { msg.textContent = '삭제 중...'; msg.className = 'msg'; }
   api('delete', {}, 'POST', { pw: state.adminPw, id: id }).then(function (res) {
     if (res.ok) {
       state.decks = state.decks.filter(function (x) { return x.id !== id; });
@@ -1081,8 +1180,12 @@ function deleteDeck_ui(id) {
       renderCurrentDeck();
       renderDeckList();
     } else {
+      if (msg) { msg.textContent = ''; }
       alert('삭제 실패: ' + (res.error || ''));
     }
+  }).catch(function () {
+    if (msg) { msg.textContent = ''; }
+    alert('삭제 중 통신 오류가 발생했습니다.');
   });
 }
 
