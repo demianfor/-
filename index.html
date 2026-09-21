@@ -420,6 +420,20 @@ function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"']/g, functi
   return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
 }); }
 
+// 구글 드라이브 이미지(lh3.googleusercontent.com)가 가끔 일시적으로 로드 실패하는 경우가 있어서,
+// 실패하면 잠깐 기다렸다가 주소는 그대로 두고(URL을 바꾸면 구글 쪽에서 이상하게 처리할 수 있어서) 다시 로드를 시도한다.
+// 최대 2번까지만 재시도하고, 그래도 안 되면 그냥 깨진 이미지로 둔다(무한 재시도 방지).
+function imgRetry_(img) {
+  var tries = parseInt(img.dataset.retryCount || '0', 10);
+  if (tries >= 2 || !img.src) return;
+  img.dataset.retryCount = String(tries + 1);
+  var src = img.src;
+  setTimeout(function () {
+    img.src = '';
+    img.src = src;
+  }, 700 * (tries + 1));
+}
+
 /* ---------- 로그인 ---------- */
 function tryLogin() {
   var pw = document.getElementById('gate-pw').value;
@@ -734,7 +748,7 @@ function renderDeckHtml(deck, editable) {
     var charOverlay = editable ? '<select class="tile-overlay" data-edit-char="' + idx + '">' + optionsHtml_(state.characters, c.name) + '</select>' : '';
     var removeBtn = editable ? '<button type="button" class="tile-remove" data-remove-char="' + idx + '" title="캐릭터 삭제">×</button>' : '';
     var dragHandle = editable ? '<button type="button" class="drag-handle" data-drag-handle="set" title="드래그해서 이 세트(캐릭터·장비·카드)를 다른 자리와 바꾸기">⠿</button>' : '';
-    var charTile = '<div class="card-char' + (editable ? ' editable' : '') + '"><img src="' + esc(c.portrait) + '">' +
+    var charTile = '<div class="card-char' + (editable ? ' editable' : '') + '"><img src="' + esc(c.portrait) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)">' +
       badge + '<div class="name">' + esc(c.name) + '</div>' + charOverlay + removeBtn + dragHandle + '</div>';
 
     var gearGrid = '<div class="set-gear">' +
@@ -748,7 +762,7 @@ function renderDeckHtml(deck, editable) {
     var cardName = (c.card && c.card.name) || c.name;
     var cardImg = (c.card && c.card.img) || '';
     var cardOverlay = editable ? '<select class="tile-overlay" data-edit-card="' + idx + '">' + optionsHtml_(state.cards, cardName, stripCardWord_) + '</select>' : '';
-    var cardTile = '<div class="card-skill' + (editable ? ' editable' : '') + '"><img src="' + esc(cardImg) + '"><div class="name">' + esc(stripCardWord_(cardName)) + '</div>' + cardOverlay + '</div>';
+    var cardTile = '<div class="card-skill' + (editable ? ' editable' : '') + '"><img src="' + esc(cardImg) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)"><div class="name">' + esc(stripCardWord_(cardName)) + '</div>' + cardOverlay + '</div>';
 
     return '<div class="char-set"' + (editable ? ' data-drag-set="' + idx + '"' : '') + '>' + charTile + gearGrid + cardTile + '</div>';
   }).join('');
@@ -761,7 +775,7 @@ function renderDeckHtml(deck, editable) {
     var overlay = editable ? '<select class="tile-overlay" data-edit-pet="' + pos + '">' + optionsHtml_(state.pets, p.name) + '</select>' : '';
     var dragHandle = editable ? '<button type="button" class="drag-handle" data-drag-handle="pet" title="드래그해서 자리 바꾸기">⠿</button>' : '';
     return '<div><div class="pet-pos">' + esc(pos) + ' 펫</div>' +
-      '<div class="pet-card' + (editable ? ' editable' : '') + '"' + (editable ? ' data-drag-pet="' + esc(pos) + '"' : '') + '><img src="' + esc(p.img) + '"><div class="name">' + esc(p.name) + '</div>' + overlay + dragHandle + '</div></div>';
+      '<div class="pet-card' + (editable ? ' editable' : '') + '"' + (editable ? ' data-drag-pet="' + esc(pos) + '"' : '') + '><img src="' + esc(p.img) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)"><div class="name">' + esc(p.name) + '</div>' + overlay + dragHandle + '</div></div>';
   }).join('');
 
   // position box: 컬럼별 그룹핑, slot 오름차순 (1 위 / 2 아래) — 배치 미리보기, 읽기 전용
@@ -772,7 +786,7 @@ function renderDeckHtml(deck, editable) {
     var arr = byCol[col];
     var single = arr.length <= 1 ? ' single' : '';
     var slots = arr.map(function (c) {
-      return '<div class="slot"><img src="' + esc(c.portrait) + '"><div class="pname">' + esc(c.name) + '</div></div>';
+      return '<div class="slot"><img src="' + esc(c.portrait) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)"><div class="pname">' + esc(c.name) + '</div></div>';
     }).join('');
     return '<div class="position-col' + single + '">' + slots + '</div>';
   }
@@ -800,7 +814,7 @@ function renderDeckHtml(deck, editable) {
         var removeBtn = editable ? '<button type="button" class="tile-remove small" data-remove-step="' + ci + ':' + si + '" title="스텝 삭제">×</button>' : '';
         var dragHandle = editable ? '<button type="button" class="drag-handle small" data-drag-handle="step" title="드래그해서 순서 바꾸기">⠿</button>' : '';
         return '<div class="step' + (editable ? ' editable' : '') + '"' + (editable ? ' data-drag-step="' + ci + ':' + si + '"' : '') + '><div class="step-num">' + (si + 1) + '</div>' +
-          '<img src="' + esc(s.img) + '"><div class="step-name">' + esc(s.name) + '</div>' +
+          '<img src="' + esc(s.img) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)"><div class="step-name">' + esc(s.name) + '</div>' +
           tagHtml + memoHtml + charOverlay + removeBtn + dragHandle +
           '</div>' + arrow;
       }).join('');
@@ -834,7 +848,7 @@ function renderDeckHtml(deck, editable) {
       }).join('') + '</div>'
     : '';
 
-  var bossImg = '<img src="' + esc(deck.bossIcon || '') + '">';
+  var bossImg = '<img src="' + esc(deck.bossIcon || '') + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)">';
   var titleBar = '<div class="title-bar">' +
     (editable
       ? '<div class="title-boss editable" data-edit-boss title="클릭해서 보스 이미지 URL 바꾸기">' + bossImg + '</div>'
@@ -860,7 +874,7 @@ function gearCell_(g, idx, kind, editable) {
   var name = (g && g.name) || '';
   var icon = (g && g.icon) || '';
   var overlay = editable ? '<select class="tile-overlay" data-edit-gear="' + idx + ':' + kind + '">' + optionsHtml_(state.equip[kind] || [], name) + '</select>' : '';
-  return '<div class="gear-cell' + (editable ? ' editable' : '') + '"><img src="' + esc(icon) + '" title="' + esc(name) + '">' + overlay + '</div>';
+  return '<div class="gear-cell' + (editable ? ' editable' : '') + '"><img src="' + esc(icon) + '" title="' + esc(name) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)">' + overlay + '</div>';
 }
 
 /* =========================================================
