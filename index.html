@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>가온누리 덱 모음</title>
+<!-- 덱을 이미지로 저장/공유하는 기능에 쓰는 DOM 캡처 라이브러리 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root {
     --bg: #14161c;
@@ -206,24 +208,26 @@
   .position-col img { width: 100%; flex: 1 1 auto; min-height: 0; border-radius: 8px; object-fit: cover; object-position: 50% 22%; border: 1px solid var(--border); }
   .position-col .pname { font-size: 11px; text-align: center; color: var(--muted); margin-top: 3px; flex: 0 0 auto; }
 
-  .timeline { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-top: 14px; }
-  .timeline-title { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
-  .cycle { margin-bottom: 16px; }
+  .timeline { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
+  .timeline-title { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .cycle { margin-bottom: 8px; }
   .cycle:last-of-type { margin-bottom: 0; }
-  .cycle-label { display: inline-block; font-size: 11px; font-weight: 700; color: #000; background: var(--gold); border-radius: 5px; padding: 2px 8px; margin-bottom: 8px; }
+  .cycle-label { display: inline-block; font-size: 11px; font-weight: 700; color: #000; background: var(--gold); border-radius: 5px; padding: 2px 8px; }
   /* 한 사이클의 스텝들은 줄바꿈으로 겹치듯 쌓이지 않고 항상 한 줄에 나오도록 한다.
-     화면이 좁으면 칸 너비/간격을 줄여서 최대한 맞추고, 그래도 안 들어가면 가로 스크롤로 넘긴다. */
+     화면이 좁으면 칸 너비/간격을 줄여서 최대한 맞추고, 그래도 안 들어가면 가로 스크롤로 넘긴다.
+     1사이클/2사이클을 같이 보는 경우가 많아서(모바일에서 게임 위에 창으로 띄워놓고 봄) 세로/가로
+     간격을 최대한 타이트하게 유지한다. */
   /* overflow-x:auto를 주면 overflow-y도 같이 스크롤 박스가 되면서, 번호 배지(.step-num)가
      top:-4px로 위로 살짝 튀어나온 부분이 위쪽에서 잘려 반원처럼 보이는 문제가 있었다.
      padding-top으로 여유 공간을 줘서 배지가 안 잘리게 한다. */
-  .timeline-row { display: flex; align-items: flex-start; gap: clamp(2px, 1vw, 4px); flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-top: 8px; padding-bottom: 4px; }
-  .step { display: flex; flex-direction: column; align-items: center; width: clamp(56px, 15vw, 92px); flex: 0 0 auto; position: relative; }
+  .timeline-row { display: flex; align-items: flex-start; gap: clamp(1px, 0.6vw, 3px); flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-top: 7px; padding-bottom: 2px; }
+  .step { display: flex; flex-direction: column; align-items: center; width: clamp(50px, 13vw, 84px); flex: 0 0 auto; position: relative; }
   .step-num { position: absolute; top: -4px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--gold); color: #000; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-  .step img { width: clamp(34px, 9vw, 48px); height: clamp(34px, 9vw, 48px); border-radius: 50%; object-fit: cover; object-position: 50% 22%; border: 2px solid var(--border); }
-  .step-name { font-size: clamp(9px, 2.4vw, 10.5px); margin-top: 4px; text-align: center; color: var(--text); }
-  .step-time { font-size: clamp(11px, 3vw, 13px); font-weight: 700; margin-top: 2px; text-align: center; color: var(--blue); }
-  .step-memo { font-size: clamp(10px, 2.6vw, 12px); margin-top: 5px; text-align: center; color: var(--muted); line-height: 1.35; word-break: keep-all; border-top: 1px dashed var(--border); padding-top: 4px; width: 100%; }
-  .arrow { color: var(--muted); font-size: clamp(11px, 2.8vw, 14px); padding-top: 12px; flex: 0 0 auto; }
+  .step img { width: clamp(30px, 8vw, 44px); height: clamp(30px, 8vw, 44px); border-radius: 50%; object-fit: cover; object-position: 50% 22%; border: 2px solid var(--border); }
+  .step-name { font-size: clamp(9px, 2.2vw, 10.5px); margin-top: 2px; text-align: center; color: var(--text); }
+  .step-time { font-size: clamp(11px, 2.8vw, 13px); font-weight: 700; margin-top: 1px; text-align: center; color: var(--blue); }
+  .step-memo { font-size: clamp(10px, 2.4vw, 12px); margin-top: 3px; text-align: center; color: var(--muted); line-height: 1.25; word-break: keep-all; border-top: 1px dashed var(--border); padding-top: 3px; width: 100%; }
+  .arrow { color: var(--muted); font-size: clamp(11px, 2.6vw, 14px); padding-top: 10px; flex: 0 0 auto; }
   .warn-list { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
   .warn-item { color: var(--gold); font-size: 13px; line-height: 1.7; }
   .warn-item .tile-remove, .warn-list .add-btn.small { position: static; width: auto; height: auto; border-radius: 5px; padding: 1px 6px; font-size: 10px; margin-left: 6px; background: var(--red); vertical-align: middle; }
@@ -294,7 +298,7 @@
   .editable-text:hover, .editable-text:focus { background: var(--panel2); }
   .editable-text:empty:before { content: attr(data-placeholder); color: var(--muted); }
   .title-text h1.editable-text:empty:before { content: '덱 제목'; }
-  .cycle-label-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .cycle-label-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
   .cycle-label-row .tile-remove { position: static; width: auto; height: auto; border-radius: 5px; padding: 2px 8px; font-size: 10.5px; background: var(--red); }
   .title-boss.editable { pointer-events: auto; cursor: pointer; }
 
@@ -332,22 +336,32 @@
     .gear-cell img { padding: 3px; }
     .card-char .badge { width: 16px; height: 16px; font-size: 10px; }
 
-    /* 펫 줄: 배치 미리보기 박스가 펫 3칸과 나란히 끼어 겹쳐 보이던 것을,
-       펫 3칸을 먼저 한 줄로 보여주고 배치 박스는 그 아래로 내린다. */
-    .row.pets { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .row.pets .position-box { grid-column: 1 / -1; margin-top: 4px; }
+    /* 펫 3칸 + 배치 미리보기 박스는 좁은 화면에서도 계속 좌우로 나란히 두고, 그냥 다같이
+       작아지게 한다 (세로로 쌓이면 오히려 더 길어져서 보기 불편하다는 피드백). */
+    .row.pets { grid-template-columns: repeat(3, 0.62fr) 1.3fr; gap: 6px; }
+    .position-box { padding: 6px; border-radius: 8px; }
+    .position-box .headers { gap: 4px; margin-bottom: 4px; }
+    .position-box .headers div { font-size: 9px; padding: 3px 0; border-radius: 5px; }
+    .position-box .cols { gap: 4px; }
+    .position-col { gap: 3px; }
+    .position-col .pname { font-size: 8.5px; margin-top: 1px; }
+    .pet-pos { font-size: 8.5px; margin-bottom: 2px; }
     .save-bar { flex-wrap: wrap; }
     .save-bar #save-msg { flex: 1 1 100%; margin-right: 0; }
 
     /* 스킬 타임라인: 한 사이클(스텝들)이 스크롤 없이 한 화면에 다 들어오도록,
-       스텝/화살표가 화면 폭에 맞춰 균등하게 줄어들게 한다(개수가 몇 개든 항상 꽉 채워서 넘치지 않음). */
-    .timeline-row { overflow-x: visible; gap: 1px; padding-bottom: 0; }
+       스텝/화살표가 화면 폭에 맞춰 균등하게 줄어들게 한다(개수가 몇 개든 항상 꽉 채워서 넘치지 않음).
+       1/2사이클을 같이 보는 경우가 많아서 위아래 여백도 최대한 좁게 유지한다. */
+    .timeline { padding: 8px 8px; margin-top: 8px; }
+    .timeline-title { margin-bottom: 6px; }
+    .cycle { margin-bottom: 6px; }
+    .timeline-row { overflow-x: visible; gap: 1px; padding-top: 6px; padding-bottom: 0; }
     .step { width: auto; flex: 1 1 0; min-width: 0; }
     .step img { width: 68%; height: auto; aspect-ratio: 1/1; max-width: 36px; }
-    .step-name { font-size: 8.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-    .step-time { font-size: 10px; }
-    .step-memo { font-size: 9px; overflow-wrap: break-word; }
-    .arrow { flex: 0 0 auto; font-size: 9px; padding: 0 1px; }
+    .step-name { font-size: 8.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
+    .step-time { font-size: 10px; margin-top: 0; }
+    .step-memo { font-size: 9px; overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
+    .arrow { flex: 0 0 auto; font-size: 9px; padding: 0 1px; padding-top: 8px; }
   }
 </style>
 </head>
@@ -382,6 +396,9 @@
   <div class="deck-picker" id="deck-picker"></div>
   <div class="main">
     <div id="admin-hint" style="display:none">관리자 모드: 이미지를 클릭하면 바로 바꿀 수 있고, 글자를 클릭하면 바로 고칠 수 있어요.</div>
+    <div id="deck-toolbar" style="display:none;text-align:right;margin-bottom:8px">
+      <button class="pill-btn" id="deck-download-btn" type="button" onclick="downloadDeckImage()">📷 이미지로 저장</button>
+    </div>
     <div id="viewer"><div class="deck"><div class="empty">위쪽 메뉴에서 덱을 선택하세요</div></div></div>
     <div id="admin-bar" class="save-bar" style="display:none">
       <span id="save-msg" class="msg"></span>
@@ -773,10 +790,12 @@ function renderCurrentDeck() {
     viewer.innerHTML = '<div class="deck"><div class="empty">위쪽 메뉴에서 덱을 선택하세요</div></div>';
     document.getElementById('admin-bar').style.display = 'none';
     document.getElementById('admin-hint').style.display = 'none';
+    document.getElementById('deck-toolbar').style.display = 'none';
     return;
   }
   var editable = !!state.isAdmin;
   viewer.innerHTML = renderDeckHtml(deck, editable);
+  document.getElementById('deck-toolbar').style.display = 'block';
   if (editable) {
     wireAdminInline_(viewer, deck);
     document.getElementById('admin-bar').style.display = 'flex';
@@ -786,6 +805,85 @@ function renderCurrentDeck() {
     document.getElementById('admin-bar').style.display = 'none';
     document.getElementById('admin-hint').style.display = 'none';
   }
+}
+
+/* ---------- 덱을 이미지로 저장/공유 (단톡방 공유용) ---------- */
+function downloadDeckImage() {
+  var deck = state.currentDeck;
+  if (!deck) { alert('저장할 덱이 없습니다.'); return; }
+  if (typeof html2canvas !== 'function') { alert('이미지 저장 기능을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'); return; }
+
+  var btn = document.getElementById('deck-download-btn');
+  var prevText = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = '이미지 생성 중...'; btn.disabled = true; }
+
+  // 관리자 모드에서 열어놨더라도 선택박스/삭제버튼 같은 편집용 UI 없이 깨끗하게 캡처하기 위해,
+  // 화면 밖에 읽기 전용(editable=false)으로 한 번 더 그려서 그걸 캡처한다.
+  var wrap = document.createElement('div');
+  wrap.style.position = 'fixed';
+  wrap.style.left = '-99999px';
+  wrap.style.top = '0';
+  wrap.style.width = '900px';
+  wrap.innerHTML = renderDeckHtml(deck, false);
+  document.body.appendChild(wrap);
+  var deckEl = wrap.querySelector('.deck');
+
+  function cleanup() {
+    if (wrap.parentNode) document.body.removeChild(wrap);
+    if (btn) { btn.textContent = prevText; btn.disabled = false; }
+  }
+
+  var bg = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim() || '#171c27';
+  html2canvas(deckEl, {
+    backgroundColor: bg,
+    scale: Math.min(2, window.devicePixelRatio || 1.5),
+    useCORS: true // 드라이브 이미지가 CORS를 허용 안 하면 그 이미지만 빈 채로 캡처될 수 있음(레이아웃/텍스트는 정상)
+  }).then(function (canvas) {
+    cleanup();
+    var filename = String(deck.title || '덱').replace(/[\/\\:*?"<>|]+/g, '_') + '.png';
+    saveOrShareCanvas_(canvas, filename);
+  }).catch(function (err) {
+    cleanup();
+    alert('이미지 생성에 실패했습니다. 잠시 후 다시 시도해주세요.\n(' + err + ')');
+  });
+}
+
+// 캔버스를 파일로 만든 뒤, 가능하면 기기의 공유 시트(카카오톡 등으로 바로 공유)를 띄우고,
+// 안 되면 PC에서는 파일로 다운로드, 모바일에서는 새 탭에 이미지를 띄워 길게 눌러 저장하게 한다.
+function saveOrShareCanvas_(canvas, filename) {
+  canvas.toBlob(function (blob) {
+    if (!blob) { alert('이미지 생성에 실패했습니다.'); return; }
+    var file;
+    try { file = new File([blob], filename, { type: 'image/png' }); } catch (e) {}
+    if (file && navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+      navigator.share({ files: [file], title: filename }).catch(function () { /* 사용자가 취소한 경우 등: 조용히 무시 */ });
+      return;
+    }
+    var url = URL.createObjectURL(blob);
+    var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!isMobile) {
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+    } else {
+      var w = window.open();
+      if (w) {
+        w.document.write(
+          '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + esc(filename) + '</title>' +
+          '<meta name="viewport" content="width=device-width, initial-scale=1"></head>' +
+          '<body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh">' +
+          '<div style="text-align:center;padding:16px;font-family:sans-serif">' +
+          '<p style="color:#fff;font-size:14px;margin-bottom:10px">이미지를 길게 눌러서 저장하세요</p>' +
+          '<img src="' + url + '" style="max-width:100%;border-radius:8px">' +
+          '</div></body></html>'
+        );
+        w.document.close();
+      } else {
+        alert('팝업이 차단되어 있어요. 브라우저 팝업 허용 후 다시 시도해주세요.');
+      }
+    }
+  }, 'image/png');
 }
 
 /* =========================================================
