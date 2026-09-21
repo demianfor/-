@@ -756,7 +756,10 @@ function selectDeck(id) {
   api('get', { pw: state.viewPw, id: id }).then(function (res) {
     if (!res.ok) { document.getElementById('viewer').innerHTML = '<div class="deck"><div class="empty">불러오기 실패</div></div>'; return; }
     state.currentDeck = res.deck;
-    if (state.isAdmin) { loadLibraries().then(renderCurrentDeck); } else { renderCurrentDeck(); }
+    // 캐릭터/펫 라이브러리는 관리자 모드에서만이 아니라 일반 보기에서도 필요하다 —
+    // 덱에 저장된 이미지가 오래된(만료된) 스냅샷일 때 최신 URL로 대체해서 보여주기 때문.
+    // loadLibraries()는 이미 불러온 경우 바로 반환하므로 매번 다시 불러오지 않는다.
+    loadLibraries().then(renderCurrentDeck);
   }).catch(function () {
     document.getElementById('viewer').innerHTML = '<div class="deck"><div class="empty">불러오기 실패</div></div>';
   });
