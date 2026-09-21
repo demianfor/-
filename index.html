@@ -352,6 +352,7 @@
 
 <div class="layout">
   <div class="category-tabs" id="category-tabs"></div>
+  <div class="group-tabs" id="castle-picker"></div>
   <div class="group-tabs" id="group-picker">
     <div class="empty">불러오는 중...</div>
   </div>
@@ -381,7 +382,8 @@ var state = {
   isAdmin: false,
   decks: [],
   category: '레이드', // 상단 카테고리 탭(레이드/아발론/대난투) 중 현재 선택된 것
-  group: null, // 카테고리 안의 그룹(요일/던전/모드) 중 현재 선택된 것. null이면 그룹 선택 단계.
+  castle: null, // 아발론 전용: 성 이름(엘다리아/엘아이아) 중 현재 선택된 것. null이면 성 선택 단계.
+  group: null, // 카테고리(+성 이름) 안의 그룹(요일/타입/모드) 중 현재 선택된 것. null이면 그룹 선택 단계.
   currentId: null,
   currentDeck: null,
   characters: [],
@@ -484,18 +486,41 @@ function tryAdminLogin(pw, silent) {
   });
 }
 
-/* ---------- 카테고리(레이드/아발론/대난투) → 그룹(요일/던전/모드) → 번호, 3단계 덱 선택 ---------- */
+/* ---------- 카테고리(레이드/아발론/대난투) → (아발론만 성 이름) → 그룹(요일/타입/모드) → 번호, 다단계 덱 선택 ----------
+   - 레이드: 카테고리 → 요일(그룹) → 번호
+   - 아발론: 카테고리 → 성 이름(엘다리아/엘아이아) → 타입(성문/보스, 그룹) → 번호
+   - 대난투: 카테고리 → 이름(산양/흑랑/카우/묘족, 그룹) → 번호
+*/
 var CATEGORIES = ['레이드', '아발론', '대난투'];
 // 카테고리별 그룹 순서(정렬 기준). 실제 덱에 있는 group 값만 이 순서대로 노출되고,
 // 이 목록에 없는 group 값이 덱에 있으면 뒤쪽에 추가로 붙는다.
+// 아발론의 group 값은 "엘다리아 성문"처럼 "성 이름 + 타입"이 공백으로 붙은 형태를 그대로 쓴다.
 var GROUP_ORDER = {
   '레이드': ['월', '화', '수', '목', '금', '토(마법덱)', '토(물리덱)', '일'],
   '아발론': ['엘다리아 성문', '엘다리아 보스', '엘아이아 성문', '엘아이아 보스'],
   '대난투': ['산양', '흑랑', '카우', '묘족']
 };
+// 성 이름 단계가 필요한 카테고리와, 그 성 이름들의 노출 순서.
+var CASTLE_ORDER = {
+  '아발론': ['엘다리아', '엘아이아']
+};
 
 function deckCategory_(d) { return d.category || CATEGORIES[0]; } // 카테고리 없는 예전 덱은 "레이드"로 취급
 function deckGroup_(d) { return d.group || ''; } // 그룹 없는 예전 덱은 빈 그룹으로 취급
+function needsCastleStep_(cat) { return !!CASTLE_ORDER[cat]; }
+// group 값("엘다리아 성문")에서 앞쪽 성 이름("엘다리아")만 뽑아낸다.
+function deckCastle_(d) {
+  var g = deckGroup_(d);
+  var sp = g.indexOf(' ');
+  return sp === -1 ? g : g.substring(0, sp);
+}
+// 성 이름 단계가 있는 카테고리에서, 그룹 버튼에는 성 이름을 뺀 나머지("성문"/"보스")만 보여준다.
+function groupLabel_(cat, g) {
+  if (needsCastleStep_(cat) && state.castle && g.indexOf(state.castle) === 0) {
+    return g.substring(state.castle.length).trim() || g;
+  }
+  return g;
+}
 
 function renderCategoryTabs() {
   var el = document.getElementById('category-tabs');
@@ -506,9 +531,10 @@ function renderCategoryTabs() {
 
 function selectCategory(cat) {
   state.category = cat;
+  state.castle = null;
   state.group = null;
   renderCategoryTabs();
-  renderGroupPicker(); // 그룹 버튼과 덱 목록(또는 "등록된 덱이 없습니다" 안내)을 여기서 함께 그려준다.
+  renderCastlePicker(); // 성 이름(있으면) → 그룹 → 번호까지 이어서 그려준다.
   // 지금 보고 있는 덱이 이 카테고리에 없으면 선택 해제
   var stillHere = state.decks.some(function (d) { return d.id === state.currentId && deckCategory_(d) === cat; });
   if (!stillHere) {
@@ -518,9 +544,50 @@ function selectCategory(cat) {
   }
 }
 
-// 카테고리 안의 그룹 목록을 정해진 순서대로 구한다 (실제 덱에 있는 그룹만).
+// 카테고리 안에서 실제 덱에 존재하는 성 이름 목록을 정해진 순서대로 구한다.
+function castlesInCategory_(cat) {
+  var decksInCat = state.decks.filter(function (d) { return deckCategory_(d) === cat; });
+  var present = {};
+  decksInCat.forEach(function (d) { var c = deckCastle_(d); if (c) present[c] = true; });
+  var order = CASTLE_ORDER[cat] || [];
+  var out = order.filter(function (c) { return present[c]; });
+  Object.keys(present).forEach(function (c) { if (out.indexOf(c) === -1) out.push(c); });
+  return out;
+}
+
+function renderCastlePicker() {
+  var el = document.getElementById('castle-picker');
+  if (!needsCastleStep_(state.category)) {
+    el.innerHTML = '';
+    renderGroupPicker();
+    return;
+  }
+  var castles = castlesInCategory_(state.category);
+  if (!castles.length) {
+    el.innerHTML = '';
+    renderGroupPicker();
+    return;
+  }
+  var html = castles.map(function (c) {
+    return '<div class="item' + (c === state.castle ? ' active' : '') + '" onclick="selectCastle(\'' + esc(c).replace(/'/g, "\\'") + '\')">' + esc(c) + '</div>';
+  }).join('');
+  el.innerHTML = html;
+  renderGroupPicker();
+}
+
+function selectCastle(c) {
+  state.castle = c;
+  state.group = null;
+  renderCastlePicker();
+}
+
+// 카테고리(+성 이름) 안의 그룹 목록을 정해진 순서대로 구한다 (실제 덱에 있는 그룹만).
 function groupsInCategory_(cat) {
   var decksInCat = state.decks.filter(function (d) { return deckCategory_(d) === cat; });
+  if (needsCastleStep_(cat)) {
+    if (!state.castle) return []; // 성 이름을 아직 안 골랐으면 그룹(타입) 단계는 보여주지 않는다.
+    decksInCat = decksInCat.filter(function (d) { return deckCastle_(d) === state.castle; });
+  }
   var present = {};
   decksInCat.forEach(function (d) { if (deckGroup_(d)) present[deckGroup_(d)] = true; });
   var order = GROUP_ORDER[cat] || [];
@@ -531,6 +598,12 @@ function groupsInCategory_(cat) {
 
 function renderGroupPicker() {
   var el = document.getElementById('group-picker');
+  if (needsCastleStep_(state.category) && !state.castle) {
+    // 성 이름을 먼저 골라야 하는 카테고리는, 성을 고르기 전엔 그룹/번호를 모두 비워둔다.
+    el.innerHTML = '';
+    renderDeckPicker();
+    return;
+  }
   var groups = groupsInCategory_(state.category);
   if (!groups.length) {
     // 그룹 구분이 없는(예전) 덱만 있는 카테고리는 그룹 단계를 건너뛰고 바로 번호 목록을 보여준다.
@@ -539,7 +612,7 @@ function renderGroupPicker() {
     return;
   }
   var html = groups.map(function (g) {
-    return '<div class="item' + (g === state.group ? ' active' : '') + '" onclick="selectGroup(\'' + esc(g).replace(/'/g, "\\'") + '\')">' + esc(g) + '</div>';
+    return '<div class="item' + (g === state.group ? ' active' : '') + '" onclick="selectGroup(\'' + esc(g).replace(/'/g, "\\'") + '\')">' + esc(groupLabel_(state.category, g)) + '</div>';
   }).join('');
   el.innerHTML = html;
   renderDeckPicker();
@@ -552,11 +625,14 @@ function selectGroup(g) {
 
 function renderDeckPicker() {
   var el = document.getElementById('deck-picker');
-  var groups = groupsInCategory_(state.category);
-  var decksInCat = state.decks.filter(function (d) { return deckCategory_(d) === state.category; });
+  var cat = state.category;
+  if (needsCastleStep_(cat) && !state.castle) { el.innerHTML = ''; return; } // 성 이름 선택 전에는 번호 목록 숨김
+  var groups = groupsInCategory_(cat);
+  var decksInCat = state.decks.filter(function (d) { return deckCategory_(d) === cat; });
+  if (needsCastleStep_(cat)) decksInCat = decksInCat.filter(function (d) { return deckCastle_(d) === state.castle; });
   var decksToShow;
   if (groups.length) {
-    // 그룹 단계가 있는 카테고리는 그룹을 고르기 전엔 번호 목록을 비워둔다.
+    // 그룹 단계가 있으면 그룹을 고르기 전엔 번호 목록을 비워둔다.
     if (!state.group) { el.innerHTML = ''; return; }
     decksToShow = decksInCat.filter(function (d) { return deckGroup_(d) === state.group; });
   } else {
@@ -571,10 +647,10 @@ function renderDeckPicker() {
   el.innerHTML = html || '<div class="empty">등록된 덱이 없습니다</div>';
 }
 
-// 예전 renderDeckList() 호출부와의 호환을 위해 유지: 탭+그룹+번호를 한번에 다시 그린다.
+// 예전 renderDeckList() 호출부와의 호환을 위해 유지: 탭부터 번호까지 한번에 다시 그린다.
 function renderDeckList() {
   renderCategoryTabs();
-  renderGroupPicker();
+  renderCastlePicker();
 }
 
 function selectDeck(id) {
