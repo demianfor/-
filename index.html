@@ -273,14 +273,16 @@
     .title-bar { min-height: 64px; }
     .title-boss { max-width: 65%; }
 
-    /* 캐릭터+장비+카드가 "한 세트"로 묶여 있는 이 한 줄만 가로 스크롤한다.
-       스크롤 컨테이너가 하나뿐이라 세 가지가 항상 같이 움직인다(따로 안 놀게 됨). */
+    /* 캐릭터+장비+카드가 "한 세트"로 묶여 있고, 모바일에서도 5명이 스크롤 없이 한 화면에 다 보이도록
+       칸 너비를 화면 폭에 맞게 균등하게 줄인다(캐릭/장비/카드는 세로로 묶여 있어 항상 같이 움직임). */
     .row.charset {
-      display: flex !important; overflow-x: auto; -webkit-overflow-scrolling: touch;
-      gap: 8px; padding-bottom: 6px; scroll-snap-type: x proximity;
+      display: flex !important; flex-wrap: nowrap; overflow-x: visible;
+      gap: 4px; padding-bottom: 0;
     }
-    .char-set { flex: 0 0 84px; scroll-snap-align: start; }
-    .gear-cell img { padding: 4px; }
+    .char-set { flex: 1 1 0; min-width: 0; gap: 3px; }
+    .set-gear { gap: 3px; }
+    .gear-cell img { padding: 3px; }
+    .card-char .badge { width: 16px; height: 16px; font-size: 10px; }
 
     /* 펫 줄: 배치 미리보기 박스가 펫 3칸과 나란히 끼어 겹쳐 보이던 것을,
        펫 3칸을 먼저 한 줄로 보여주고 배치 박스는 그 아래로 내린다. */
@@ -288,6 +290,16 @@
     .row.pets .position-box { grid-column: 1 / -1; margin-top: 4px; }
     .save-bar { flex-wrap: wrap; }
     .save-bar #save-msg { flex: 1 1 100%; margin-right: 0; }
+
+    /* 스킬 타임라인: 한 사이클(스텝들)이 스크롤 없이 한 화면에 다 들어오도록,
+       스텝/화살표가 화면 폭에 맞춰 균등하게 줄어들게 한다(개수가 몇 개든 항상 꽉 채워서 넘치지 않음). */
+    .timeline-row { overflow-x: visible; gap: 1px; padding-bottom: 0; }
+    .step { width: auto; flex: 1 1 0; min-width: 0; }
+    .step img { width: 68%; height: auto; aspect-ratio: 1/1; max-width: 36px; }
+    .step-name { font-size: 8.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .step-time { font-size: 10px; }
+    .step-memo { font-size: 9px; overflow-wrap: break-word; }
+    .arrow { flex: 0 0 auto; font-size: 9px; padding: 0 1px; }
   }
 </style>
 </head>
