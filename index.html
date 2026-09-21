@@ -238,12 +238,16 @@
     -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.92) 70%, rgba(0,0,0,1) 88%);
     mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.92) 70%, rgba(0,0,0,1) 88%);
   }
+  /* --boss-tint: 속성 뱃지 색상과 맞춘 R,G,B (덱에 속성이 없으면 기본 네이비-블루 사용) */
+  .title-boss {
+    --boss-tint: 61,102,144;
+  }
   .title-boss::before {
     content: ""; position: absolute; inset: 0; z-index: 1;
-    background: linear-gradient(to right, var(--panel) 0%, rgba(32,43,61,0.95) 15%, rgba(38,55,79,0.8) 30%, rgba(47,75,108,0.6) 45%, rgba(61,102,144,0.4) 60%, rgba(79,131,173,0.2) 75%, rgba(79,163,227,0.06) 88%, rgba(79,163,227,0) 100%);
+    background: linear-gradient(to right, var(--panel) 0%, rgba(32,43,61,0.95) 15%, rgba(38,55,79,0.8) 30%, rgba(var(--boss-tint),0.6) 45%, rgba(var(--boss-tint),0.4) 60%, rgba(var(--boss-tint),0.2) 75%, rgba(var(--boss-tint),0.06) 88%, rgba(var(--boss-tint),0) 100%);
   }
   :root[data-theme="light"] .title-boss::before {
-    background: linear-gradient(to right, var(--panel) 0%, rgba(255,255,255,0.95) 15%, rgba(219,234,247,0.8) 30%, rgba(179,214,240,0.6) 45%, rgba(148,198,232,0.4) 60%, rgba(115,180,224,0.2) 75%, rgba(79,163,227,0.06) 88%, rgba(79,163,227,0) 100%);
+    background: linear-gradient(to right, var(--panel) 0%, rgba(255,255,255,0.95) 15%, rgba(var(--boss-tint),0.35) 30%, rgba(var(--boss-tint),0.28) 45%, rgba(var(--boss-tint),0.22) 60%, rgba(var(--boss-tint),0.14) 75%, rgba(var(--boss-tint),0.06) 88%, rgba(var(--boss-tint),0) 100%);
   }
   .title-text { position: relative; z-index: 2; padding: 10px 4px 10px 16px; }
   .title-text h1 { margin: 0 0 8px 0; }
@@ -607,7 +611,8 @@ var DEFAULT_BOSS_ICON = {
   '대난투|묘족': driveThumb_('1FLtrKXgP0LlXcnpmM6Wo7laI2LGTXG0Y')
 };
 function defaultBossIcon_(deck) {
-  return DEFAULT_BOSS_ICON[deckCategory_(deck) + '|' + deckGroup_(deck)] || '';
+  var key = String(deckCategory_(deck)).trim() + '|' + String(deckGroup_(deck)).trim();
+  return DEFAULT_BOSS_ICON[key] || '';
 }
 
 function deckCategory_(d) { return d.category || CATEGORIES[0]; } // 카테고리 없는 예전 덱은 "레이드"로 취급
@@ -826,6 +831,16 @@ var TITLE_BADGE_ICON = {
   physical: '<svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/><path d="M6.5 3.5l2 2M17.5 3.5l-2 2M6.5 20.5l2-2M17.5 20.5l-2-2"/></svg>',
   magic: '<svg viewBox="0 0 24 24"><path d="M12 2l1.6 4.4L18 8l-4.4 1.6L12 14l-1.6-4.4L6 8l4.4-1.6L12 2z"/><path d="M19 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>'
 };
+// 속성 뱃지 색(el-* 클래스의 진한 쪽 색)과 맞춘 타이틀 바 그라데이션 틴트(R,G,B). 속성 미지정 시 기본 네이비-블루.
+var ELEMENT_TINT = {
+  fire: '201,53,64',
+  water: '47,128,201',
+  wind: '47,158,106',
+  thunder: '43,125,146',
+  light: '207,154,42',
+  dark: '74,48,128'
+};
+function bossTint_(deck) { return ELEMENT_TINT[deck.element] || '61,102,144'; }
 function titleBadgeHtml_(list, value, editable, dataAttr) {
   var found = list.filter(function (m) { return m.key === value; })[0];
   var cls = found ? found.cls : 'empty';
@@ -983,10 +998,11 @@ function renderDeckHtml(deck, editable) {
         titleBadgeHtml_(ATK_TYPES, deck.atkType, editable, 'data-edit-atktype') +
       '</div>'
     : '';
+  var bossTintStyle = ' style="--boss-tint:' + bossTint_(deck) + '"';
   var titleBar = '<div class="title-bar">' +
     (editable
-      ? '<div class="title-boss editable" data-edit-boss title="클릭해서 보스 이미지 URL을 직접 지정 (비워두면 요일 기본 이미지 사용)">' + bossImg + '</div>'
-      : (effectiveBossIcon ? '<div class="title-boss">' + bossImg + '</div>' : '')) +
+      ? '<div class="title-boss editable"' + bossTintStyle + ' data-edit-boss title="클릭해서 보스 이미지 URL을 직접 지정 (비워두면 요일 기본 이미지 사용)">' + bossImg + '</div>'
+      : (effectiveBossIcon ? '<div class="title-boss"' + bossTintStyle + '>' + bossImg + '</div>' : '')) +
     titleBadgesHtml +
     '<div class="title-text">' +
     (editable ? '<h1 class="editable-text" contenteditable="true" data-field="title">' + esc(deck.title) + '</h1>' : '<h1>' + esc(deck.title) + '</h1>') +
