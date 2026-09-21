@@ -585,6 +585,31 @@ var CASTLE_ORDER = {
   '아발론': ['엘다리아', '엘아이아']
 };
 
+// 요일/그룹별 기본 보스 이미지 (드라이브 "가온누리_안정이미지" 폴더). 덱에 bossIcon이 따로 지정돼
+// 있지 않으면 이 기본값을 쓴다 — 매번 관리자 모드에서 직접 붙여넣지 않아도 됨.
+function driveThumb_(id) { return 'https://drive.google.com/thumbnail?id=' + id + '&sz=w1000'; }
+var DEFAULT_BOSS_ICON = {
+  '레이드|월': driveThumb_('19HV5E648yFLwsjLKzsL0zoRzbmnVoIo-'),       // 주시자의 여왕
+  '레이드|화': driveThumb_('1GcDxc69_n7zWrVPytWTdS0_ddSVzaDA6'),       // 아그네스
+  '레이드|수': driveThumb_('1kjUwpCAHEmpuakal9qJOWIlWNrxDRAhv'),       // 예티
+  '레이드|목': driveThumb_('1McXWJdwrRG5iVrg3XBlPC0l-T4nubM6F'),       // 독룡 파프니르
+  '레이드|금': driveThumb_('1gKj8arbcPoKvsfmMygwlRPElgnR-nmY9'),       // 전사장 칼레온
+  '레이드|토(마법덱)': driveThumb_('1VUJM4eXeDKTSl8vg-BbLEDBUjLE848aV'), // 염제 케이 (마법)
+  '레이드|토(물리덱)': driveThumb_('1lTlaRTw88cQTs0fOy3-sjo-JienEthCj'), // 염제 케이 (물리)
+  '레이드|일': driveThumb_('1zh3GcK6I84PmuEcWRXc6PcNpZ3wpTmZ8'),       // 메두사
+  '아발론|엘다리아 성문': driveThumb_('1cJRkucE_VKIhtzXsj0fcLRozmOW8vlRs'),
+  '아발론|엘다리아 보스': driveThumb_('19btTwKBwHyyRjfchtH21DBkaaGXB-1O5'),
+  '아발론|엘아이아 성문': driveThumb_('1mL-UxvjpFbcvHkIrSYk6DJJ2vFhwv71a'),
+  '아발론|엘아이아 보스': driveThumb_('1WQkg7WHwqpe0E97I_AbxCVqbkKeL8CsM'),
+  '대난투|산양': driveThumb_('1GCEyvhetO6uVHWP3MSkbuToqd__cyzQ5'),
+  '대난투|흑랑': driveThumb_('19g5XYdx00nqO-8HOrqem4L4uTRLQOSqO'),
+  '대난투|카우': driveThumb_('1o-bQvxS2_V8zp-Me8AGaajyzCzlFCArY'),
+  '대난투|묘족': driveThumb_('1FLtrKXgP0LlXcnpmM6Wo7laI2LGTXG0Y')
+};
+function defaultBossIcon_(deck) {
+  return DEFAULT_BOSS_ICON[deckCategory_(deck) + '|' + deckGroup_(deck)] || '';
+}
+
 function deckCategory_(d) { return d.category || CATEGORIES[0]; } // 카테고리 없는 예전 덱은 "레이드"로 취급
 function deckGroup_(d) { return d.group || ''; } // 그룹 없는 예전 덱은 빈 그룹으로 취급
 function needsCastleStep_(cat) { return !!CASTLE_ORDER[cat]; }
@@ -949,7 +974,9 @@ function renderDeckHtml(deck, editable) {
       }).join('') + '</div>'
     : '';
 
-  var bossImg = '<img src="' + esc(deck.bossIcon || '') + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)">';
+  // deck.bossIcon을 직접 지정해둔 덱은 그걸 쓰고, 없으면 요일/그룹에 맞는 기본 보스 이미지를 자동으로 쓴다.
+  var effectiveBossIcon = deck.bossIcon || defaultBossIcon_(deck);
+  var bossImg = '<img src="' + esc(effectiveBossIcon) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)">';
   var titleBadgesHtml = (editable || deck.element || deck.atkType)
     ? '<div class="title-badges">' +
         titleBadgeHtml_(ELEMENTS, deck.element, editable, 'data-edit-element') +
@@ -958,8 +985,8 @@ function renderDeckHtml(deck, editable) {
     : '';
   var titleBar = '<div class="title-bar">' +
     (editable
-      ? '<div class="title-boss editable" data-edit-boss title="클릭해서 보스 이미지 URL 바꾸기">' + bossImg + '</div>'
-      : (deck.bossIcon ? '<div class="title-boss">' + bossImg + '</div>' : '')) +
+      ? '<div class="title-boss editable" data-edit-boss title="클릭해서 보스 이미지 URL을 직접 지정 (비워두면 요일 기본 이미지 사용)">' + bossImg + '</div>'
+      : (effectiveBossIcon ? '<div class="title-boss">' + bossImg + '</div>' : '')) +
     titleBadgesHtml +
     '<div class="title-text">' +
     (editable ? '<h1 class="editable-text" contenteditable="true" data-field="title">' + esc(deck.title) + '</h1>' : '<h1>' + esc(deck.title) + '</h1>') +
