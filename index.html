@@ -883,22 +883,45 @@ function downloadDeckImage(mode) {
   });
 }
 
-// "저장": 실제 파일로 확실하게 저장한다. PC/안드로이드는 다운로드 폴더로 바로 저장되고,
+// "저장": 실제 파일로 확실하게 저장한다.
+// PC 중 크롬/엣지 계열(파일시스템 접근 API를 지원하는 브라우저)은 누를 때마다
+// "다른 이름으로 저장" 창이 떠서 저장 위치(폴더)를 직접 고를 수 있다.
+// 그 외(파이어폭스/사파리 PC, 안드로이드)는 브라우저의 기본 다운로드 폴더로 바로 저장되고,
 // iOS 사파리는 다운로드 강제가 잘 안 먹어서 새 탭에 띄워 길게 눌러 저장하게 안내한다.
 function downloadCanvasFile_(canvas, filename) {
   canvas.toBlob(function (blob) {
     if (!blob) { alert('이미지 생성에 실패했습니다.'); return; }
+    var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     var isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    var url = URL.createObjectURL(blob);
-    if (!isIOS) {
-      var a = document.createElement('a');
-      a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
-    } else {
-      openImageTabForSave_(url, filename);
+
+    if (!isMobile && window.showSaveFilePicker) {
+      window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'PNG 이미지', accept: { 'image/png': ['.png'] } }]
+      }).then(function (handle) {
+        return handle.createWritable().then(function (writable) {
+          return writable.write(blob).then(function () { return writable.close(); });
+        });
+      }).catch(function (err) {
+        if (err && err.name === 'AbortError') return; // 사용자가 저장 창을 취소함 — 그냥 종료
+        fallbackAnchorDownload_(blob, filename); // 지원 안 하거나 실패하면 기본 다운로드로 대체
+      });
+      return;
     }
+    if (isIOS) {
+      openImageTabForSave_(URL.createObjectURL(blob), filename);
+      return;
+    }
+    fallbackAnchorDownload_(blob, filename);
   }, 'image/png');
+}
+
+function fallbackAnchorDownload_(blob, filename) {
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
 }
 
 // "카톡 공유": 모바일은 OS 공유시트(카카오톡 바로 선택 가능)를 띄우고,
