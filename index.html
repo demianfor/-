@@ -248,6 +248,21 @@
   .title-text { position: relative; z-index: 2; padding: 10px 4px 10px 16px; }
   .title-text h1 { margin: 0 0 8px 0; }
 
+  /* 속성/공격타입 원형 뱃지 (우상단, 보스 이미지 위) */
+  .title-badges { position: absolute; top: 8px; right: 10px; z-index: 3; display: flex; flex-direction: column; gap: 6px; }
+  .title-badge { position: relative; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.45); border: 1.5px solid rgba(255,255,255,0.28); }
+  .title-badge svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .title-badge.empty { background: rgba(255,255,255,0.06); border-style: dashed; }
+  .title-badge.el-fire    { background: linear-gradient(135deg, #e8636c, #c93540); }
+  .title-badge.el-water   { background: linear-gradient(135deg, #5cb0ea, #2f80c9); }
+  .title-badge.el-wind    { background: linear-gradient(135deg, #6fcf97, #2f9e6a); }
+  .title-badge.el-thunder { background: linear-gradient(135deg, #4fb7c9, #2b7d92); }
+  .title-badge.el-light   { background: linear-gradient(135deg, #f0d97a, #cf9a2a); }
+  .title-badge.el-dark    { background: linear-gradient(135deg, #8a6bd9, #4a3080); }
+  .title-badge.atk-physical { background: linear-gradient(135deg, #8a7361, #5c4a3a); }
+  .title-badge.atk-magic    { background: linear-gradient(135deg, #a878d9, #6a3fa0); }
+  .title-badge .tile-overlay { border-radius: 50%; }
+
   .empty { color: var(--muted); text-align: center; padding: 60px 20px; }
 
   /* ---------- 관리자 편집 폼 ---------- */
@@ -315,6 +330,9 @@
     .deck { padding: 14px 10px; border-radius: 12px; }
     .title-bar { min-height: 64px; }
     .title-boss { max-width: 65%; }
+    .title-badges { top: 6px; right: 6px; gap: 4px; }
+    .title-badge { width: 21px; height: 21px; }
+    .title-badge svg { width: 11px; height: 11px; }
 
     /* 캐릭터+장비+카드가 "한 세트"로 묶여 있고, 모바일에서도 5명이 스크롤 없이 한 화면에 다 보이도록
        칸 너비를 화면 폭에 맞게 균등하게 줄인다(캐릭/장비/카드는 세로로 묶여 있어 항상 같이 움직임). */
@@ -760,6 +778,41 @@ function renderCurrentDeck() {
 var COL_ORDER = { '후열': 0, '중열': 1, '전열': 2 };
 var COL_BADGE = { '후열': 'badge-back', '중열': 'badge-mid', '전열': 'badge-front' };
 
+// 타이틀 바 우상단 원형 뱃지 (속성 / 공격타입)
+var ELEMENTS = [
+  { key: 'fire', label: '불', cls: 'el-fire' },
+  { key: 'water', label: '물', cls: 'el-water' },
+  { key: 'wind', label: '바람', cls: 'el-wind' },
+  { key: 'thunder', label: '번개', cls: 'el-thunder' },
+  { key: 'light', label: '빛', cls: 'el-light' },
+  { key: 'dark', label: '어둠', cls: 'el-dark' }
+];
+var ATK_TYPES = [
+  { key: 'physical', label: '물리', cls: 'atk-physical' },
+  { key: 'magic', label: '마법', cls: 'atk-magic' }
+];
+var TITLE_BADGE_ICON = {
+  fire: '<svg viewBox="0 0 24 24"><path d="M12 2c1 4-3 5-3 9a3 3 0 0 0 6 0c0-1-.5-2-1-2 .5 2-1 3-2 3a2 2 0 0 1-2-2c0-2 2-3 2-5 2 1 3 3 3 5a5 5 0 0 1-10 0C5 7 9 6 12 2z"/></svg>',
+  water: '<svg viewBox="0 0 24 24"><path d="M12 2s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12z"/></svg>',
+  wind: '<svg viewBox="0 0 24 24"><path d="M4 7.5h10a2.5 2.5 0 1 0-2.5-2.5M4 12h13a2.5 2.5 0 1 1-2.5 2.5M4 16.5h9a2 2 0 1 1-2 2"/></svg>',
+  thunder: '<svg viewBox="0 0 24 24"><path d="M13 2L5 14h6l-1 8 9-12h-6l1-8z"/></svg>',
+  light: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
+  dark: '<svg viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>',
+  physical: '<svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/><path d="M6.5 3.5l2 2M17.5 3.5l-2 2M6.5 20.5l2-2M17.5 20.5l-2-2"/></svg>',
+  magic: '<svg viewBox="0 0 24 24"><path d="M12 2l1.6 4.4L18 8l-4.4 1.6L12 14l-1.6-4.4L6 8l4.4-1.6L12 2z"/><path d="M19 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>'
+};
+function titleBadgeHtml_(list, value, editable, dataAttr) {
+  var found = list.filter(function (m) { return m.key === value; })[0];
+  var cls = found ? found.cls : 'empty';
+  var icon = found ? (TITLE_BADGE_ICON[found.key] || '') : '';
+  var overlay = editable
+    ? '<select class="tile-overlay" ' + dataAttr + '><option value="">-</option>' +
+        list.map(function (m) { return '<option value="' + m.key + '"' + (m.key === value ? ' selected' : '') + '>' + m.label + '</option>'; }).join('') +
+      '</select>'
+    : '';
+  return '<div class="title-badge ' + cls + '">' + icon + overlay + '</div>';
+}
+
 function sortedCharsForRow(characters) {
   // 상단 카드/장비/스킬카드 행 순서: 후열→중열→전열, 같은 열이면 slot2가 slot1보다 왼쪽(즉 slot 내림차순)
   return characters.slice().sort(function (a, b) {
@@ -897,10 +950,17 @@ function renderDeckHtml(deck, editable) {
     : '';
 
   var bossImg = '<img src="' + esc(deck.bossIcon || '') + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)">';
+  var titleBadgesHtml = (editable || deck.element || deck.atkType)
+    ? '<div class="title-badges">' +
+        titleBadgeHtml_(ELEMENTS, deck.element, editable, 'data-edit-element') +
+        titleBadgeHtml_(ATK_TYPES, deck.atkType, editable, 'data-edit-atktype') +
+      '</div>'
+    : '';
   var titleBar = '<div class="title-bar">' +
     (editable
       ? '<div class="title-boss editable" data-edit-boss title="클릭해서 보스 이미지 URL 바꾸기">' + bossImg + '</div>'
       : (deck.bossIcon ? '<div class="title-boss">' + bossImg + '</div>' : '')) +
+    titleBadgesHtml +
     '<div class="title-text">' +
     (editable ? '<h1 class="editable-text" contenteditable="true" data-field="title">' + esc(deck.title) + '</h1>' : '<h1>' + esc(deck.title) + '</h1>') +
     (editable
@@ -935,7 +995,7 @@ function blankCharSlot_(col, slot) {
 function newDeck() {
   var id = 'deck_' + Date.now();
   var blank = {
-    id: id, title: '새 덱', category: state.category, group: state.group || '', noteTag: '', bossIcon: '',
+    id: id, title: '새 덱', category: state.category, group: state.group || '', noteTag: '', bossIcon: '', element: '', atkType: '',
     // 대부분의 덱은 5명(후열1 · 중열2 · 전열2) 구성이라 기본으로 5칸을 미리 만들어 둔다.
     // 필요하면 "+ 캐릭터 추가"로 더 넣거나, 빈 칸을 그대로 두면 저장 시 제외된다.
     characters: [
@@ -1190,6 +1250,12 @@ function wireAdminInline_(container, deck) {
       deck.bossIcon = v.trim();
       refresh();
     };
+  });
+  container.querySelectorAll('[data-edit-element]').forEach(function (sel) {
+    sel.onchange = function (e) { deck.element = e.target.value; refresh(); };
+  });
+  container.querySelectorAll('[data-edit-atktype]').forEach(function (sel) {
+    sel.onchange = function (e) { deck.atkType = e.target.value; refresh(); };
   });
   container.querySelectorAll('[data-set-category]').forEach(function (btn) {
     btn.onclick = function () {
