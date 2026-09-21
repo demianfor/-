@@ -244,6 +244,39 @@
   .drag-source { opacity: 0.3; }
   .drag-over { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 10px; }
   .drag-ghost { position: fixed; pointer-events: none; z-index: 999; opacity: 0.9; box-shadow: 0 8px 24px rgba(0,0,0,0.5); margin: 0 !important; }
+
+  /* ---------- 모바일 화면 ---------- */
+  @media (max-width: 700px) {
+    body { padding: 12px; }
+    .topbar h1 { font-size: 16px; }
+    .layout { flex-direction: column; gap: 12px; }
+    .deck-list { width: 100%; flex: 1 1 auto; position: static; }
+    .main { width: 100%; }
+    .deck { padding: 14px 10px; border-radius: 12px; }
+    .deck h1, .title-text h1 { font-size: 17px; }
+    .title-bar { min-height: 64px; }
+    .title-boss { max-width: 65%; }
+
+    /* 캐릭터/장비/카드 줄은 5칸을 억지로 욱여넣지 않고, 한 줄 가로 스크롤로 바꿔서
+       이름 글자가 세로로 한 글자씩 쪼개지는 걸 막는다. */
+    .row.chars, .row.gear, .row.cards {
+      display: flex !important; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      gap: 6px; padding-bottom: 6px; scroll-snap-type: x proximity;
+    }
+    .row.chars > *, .row.cards > * { flex: 0 0 78px; scroll-snap-align: start; }
+    .row.gear > * { flex: 0 0 54px; }
+    .card-char .name, .card-skill .name { font-size: 11px; padding: 4px 0; }
+    .gear-cell img { padding: 4px; }
+
+    /* 펫 줄: 배치 미리보기 박스가 펫 3칸과 나란히 끼어 겹쳐 보이던 것을,
+       펫 3칸을 먼저 한 줄로 보여주고 배치 박스는 그 아래로 내린다. */
+    .row.pets { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .row.pets .position-box { grid-column: 1 / -1; margin-top: 4px; }
+
+    .step { width: 78px; }
+    .save-bar { flex-wrap: wrap; }
+    .save-bar #save-msg { flex: 1 1 100%; margin-right: 0; }
+  }
 </style>
 </head>
 <body>
@@ -288,7 +321,7 @@
    설정: Apps Script 웹앱 배포 후 나오는 URL을 여기에 붙여넣으세요.
    예) https://script.google.com/macros/s/AKfycb.../exec
 ========================================================= */
-var API_URL = "https://script.google.com/macros/s/AKfycbzlUzZRvtZuV0Y939_y49H6bxzeHaTOdg5kuHGUsJUbS7orzIbBRYaCRs8z9h78QnmcMQ/exec";
+var API_URL = "여기에_Apps_Script_웹앱_URL을_붙여넣으세요";
 
 var state = {
   viewPw: '',
