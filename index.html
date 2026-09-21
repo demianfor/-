@@ -214,6 +214,11 @@
   .badge-select.badge-front { background: linear-gradient(135deg, #e8636c, #c93540); }
   .badge-select.badge-mid   { background: linear-gradient(135deg, #f0c96a, #cf9a2a); }
   .badge-select.badge-back  { background: linear-gradient(135deg, #5cb0ea, #2f80c9); }
+  /* 배지 select 자체는 흰 글씨(배지 디자인)지만, 펼쳐진 옵션 목록까지 흰 글씨면 안 보이므로
+     옵션 목록만 따로 어두운 글씨/밝은 배경으로 지정 */
+  .badge-select option { color: #111; background: #fff; }
+  .tile-overlay option { color: #111; background: #fff; }
+  .tile-overlay option[disabled] { color: #888; background: #eee; font-weight: 700; }
   .tile-remove { position: absolute; top: 8px; left: 8px; z-index: 2; width: 20px; height: 20px; line-height: 18px; padding: 0; border-radius: 50%; border: none; background: rgba(0,0,0,0.55); color: #fff; font-size: 13px; cursor: pointer; }
   .step .tile-remove.small { top: -4px; right: -4px; left: auto; width: 16px; height: 16px; line-height: 14px; font-size: 11px; }
   .add-row { text-align: center; margin: -4px 0 14px; }
@@ -281,6 +286,7 @@ var state = {
   currentDeck: null,
   characters: [],
   pets: [],
+  cards: [],
   icons: [],
   equip: { weapon: [], armor: [], item: [], rune: [] }
 };
@@ -441,14 +447,13 @@ function posOptionsHtml_(col, slot) {
 // deck: 덱 데이터. editable: true면 이미지 클릭→드롭다운 교체, 글자 클릭→직접 수정이 가능한 관리자용 마크업을 함께 그린다.
 function renderDeckHtml(deck, editable) {
   var chars = sortedCharsForRow(deck.characters || []);
-  var charNames = state.characters.map(function (c) { return c.name; });
 
   var charsHtml = chars.map(function (c, i) {
     var idx = (deck.characters || []).indexOf(c);
     var badge = editable
       ? '<select class="badge-select ' + COL_BADGE[c.col] + '" data-edit-pos="' + idx + '">' + posOptionsHtml_(c.col, c.slot) + '</select>'
       : '<div class="badge ' + COL_BADGE[c.col] + '">' + c.slot + '</div>';
-    var overlay = editable ? '<select class="tile-overlay" data-edit-char="' + idx + '">' + optionsHtml_(charNames, c.name) + '</select>' : '';
+    var overlay = editable ? '<select class="tile-overlay" data-edit-char="' + idx + '">' + optionsHtml_(state.characters, c.name) + '</select>' : '';
     var removeBtn = editable ? '<button type="button" class="tile-remove" data-remove-char="' + idx + '" title="캐릭터 삭제">×</button>' : '';
     return '<div class="card-char' + (editable ? ' editable' : '') + '"><img src="' + esc(c.portrait) + '">' +
       badge + '<div class="name">' + esc(c.name) + '</div>' + overlay + removeBtn + '</div>';
@@ -463,19 +468,22 @@ function renderDeckHtml(deck, editable) {
     return gearCell_(c.item, idx, 'item', editable) + gearCell_(c.rune, idx, 'rune', editable);
   }).join('');
 
+  // 카드는 캐릭터와 완전히 독립적으로 고를 수 있다 (자기 카드가 아닌 다른 카드를 쓰는 경우가 더 많음).
+  // 아직 카드가 따로 지정되지 않은 기존 덱은 캐릭터 이름/이미지를 그대로 보여준다(예전 방식과 호환).
   var cardsHtml = chars.map(function (c) {
     var idx = (deck.characters || []).indexOf(c);
-    var overlay = editable ? '<select class="tile-overlay" data-edit-char="' + idx + '">' + optionsHtml_(charNames, c.name) + '</select>' : '';
-    return '<div class="card-skill' + (editable ? ' editable' : '') + '"><img src="' + esc((c.card && c.card.img) || '') + '"><div class="name">' + esc(c.name) + ' 카드</div>' + overlay + '</div>';
+    var cardName = (c.card && c.card.name) || c.name;
+    var cardImg = (c.card && c.card.img) || '';
+    var overlay = editable ? '<select class="tile-overlay" data-edit-card="' + idx + '">' + optionsHtml_(state.cards, cardName) + '</select>' : '';
+    return '<div class="card-skill' + (editable ? ' editable' : '') + '"><img src="' + esc(cardImg) + '"><div class="name">' + esc(cardName) + ' 카드</div>' + overlay + '</div>';
   }).join('');
 
   var pets = deck.pets || [];
   var petOrder = { '후열': 0, '중열': 1, '전열': 2 };
-  var petNames = state.pets.map(function (p) { return p.name; });
   var posList = editable ? ['후열', '중열', '전열'] : pets.slice().sort(function (a, b) { return petOrder[a.pos] - petOrder[b.pos]; }).map(function (p) { return p.pos; });
   var petsHtml = posList.map(function (pos) {
     var p = pets.find(function (x) { return x.pos === pos; }) || { pos: pos, name: '', img: '' };
-    var overlay = editable ? '<select class="tile-overlay" data-edit-pet="' + pos + '">' + optionsHtml_(petNames, p.name) + '</select>' : '';
+    var overlay = editable ? '<select class="tile-overlay" data-edit-pet="' + pos + '">' + optionsHtml_(state.pets, p.name) + '</select>' : '';
     return '<div><div class="pet-pos">' + esc(pos) + ' 펫</div>' +
       '<div class="pet-card' + (editable ? ' editable' : '') + '"><img src="' + esc(p.img) + '"><div class="name">' + esc(p.name) + '</div>' + overlay + '</div></div>';
   }).join('');
@@ -502,7 +510,7 @@ function renderDeckHtml(deck, editable) {
       var stepsHtml = cy.steps.map(function (s, si) {
         var isLast = si === cy.steps.length - 1;
         var arrow = (!isLast || editable) ? '<div class="arrow">→</div>' : '';
-        var charOverlay = editable ? '<select class="tile-overlay small" data-edit-step="' + ci + ':' + si + '">' + optionsHtml_(charNames, s.name) + '</select>' : '';
+        var charOverlay = editable ? '<select class="tile-overlay small" data-edit-step="' + ci + ':' + si + '">' + optionsHtml_(state.characters, s.name) + '</select>' : '';
         var tagHtml = editable
           ? '<div class="step-time editable-text" contenteditable="true" data-step-field="tag:' + ci + ':' + si + '" data-placeholder="배수">' + esc(s.tag) + '</div>'
           : (s.tag ? '<div class="step-time">' + esc(s.tag) + '</div>' : '');
@@ -567,7 +575,7 @@ function renderDeckHtml(deck, editable) {
 function gearCell_(g, idx, kind, editable) {
   var name = (g && g.name) || '';
   var icon = (g && g.icon) || '';
-  var overlay = editable ? '<select class="tile-overlay" data-edit-gear="' + idx + ':' + kind + '">' + optionsHtml_((state.equip[kind] || []).map(function (x) { return x.name; }), name) + '</select>' : '';
+  var overlay = editable ? '<select class="tile-overlay" data-edit-gear="' + idx + ':' + kind + '">' + optionsHtml_(state.equip[kind] || [], name) + '</select>' : '';
   return '<div class="gear-cell' + (editable ? ' editable' : '') + '"><img src="' + esc(icon) + '" title="' + esc(name) + '">' + overlay + '</div>';
 }
 
@@ -592,20 +600,30 @@ function loadLibraries() {
   return Promise.all([
     api('characters', { pw: state.viewPw }).then(function (r) { if (r.ok) state.characters = r.characters; }),
     api('pets', { pw: state.viewPw }).then(function (r) { if (r.ok) state.pets = r.pets; }),
+    api('cards', { pw: state.viewPw }).then(function (r) { if (r.ok) state.cards = r.cards; }),
     api('icons', { pw: state.viewPw }).then(function (r) { if (r.ok) state.icons = r.icons; }),
     api('equip', { pw: state.viewPw }).then(function (r) { if (r.ok) state.equip = r.equip; })
   ]);
 }
 
-function findChar_(name) { return state.characters.find(function (c) { return c.name === name; }); }
-function findPet_(name) { return state.pets.find(function (p) { return p.name === name; }); }
-function findEquip_(kind, name) { return (state.equip[kind] || []).find(function (i) { return i.name === name; }); }
+function findChar_(name) { return state.characters.find(function (c) { return !c.divider && c.name === name; }); }
+function findPet_(name) { return state.pets.find(function (p) { return !p.divider && p.name === name; }); }
+function findCard_(name) { return state.cards.find(function (c) { return !c.divider && c.name === name; }); }
+function findEquip_(kind, name) { return (state.equip[kind] || []).find(function (i) { return !i.divider && i.name === name; }); }
 function findIcon_(name) { return state.icons.find(function (i) { return i.name === name; }); }
 
-function optionsHtml_(names, selected) {
-  return '<option value="">-</option>' + names.map(function (n) {
-    return '<option value="' + esc(n) + '"' + (n === selected ? ' selected' : '') + '>' + esc(n) + '</option>';
-  }).join('');
+// list: {name} 항목과 {divider:true,label} 구분줄 항목이 섞인 배열(캐릭터/카드/펫/장비 라이브러리 공통 형식).
+// 구분줄은 선택 불가능한 회색 옵션으로 표시된다.
+function optionsHtml_(list, selected) {
+  var html = '<option value="">-</option>';
+  (list || []).forEach(function (item) {
+    if (item.divider) {
+      html += '<option value="" disabled>── ' + esc(item.label) + ' ──</option>';
+      return;
+    }
+    html += '<option value="' + esc(item.name) + '"' + (item.name === selected ? ' selected' : '') + '>' + esc(item.name) + '</option>';
+  });
+  return html;
 }
 
 /* =========================================================
@@ -622,7 +640,17 @@ function wireAdminInline_(container, deck) {
       c.name = e.target.value;
       var lib = findChar_(c.name);
       c.portrait = lib ? lib.portrait : '';
-      c.card = { img: lib ? lib.card : '' };
+      // 카드는 캐릭터와 별개로 관리하므로 여기서는 건드리지 않는다.
+      refresh();
+    };
+  });
+  container.querySelectorAll('[data-edit-card]').forEach(function (sel) {
+    sel.onchange = function (e) {
+      var idx = Number(sel.dataset.editCard);
+      var c = deck.characters[idx];
+      var name = e.target.value;
+      var lib = findCard_(name);
+      c.card = { name: name, img: lib ? lib.image : '' };
       refresh();
     };
   });
