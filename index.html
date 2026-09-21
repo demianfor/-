@@ -81,20 +81,34 @@
   .pill-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; }
   .pill-btn.admin-on { background: var(--red); color: #fff; border-color: var(--red); font-weight: 600; }
 
-  .layout { max-width: 960px; margin: 0 auto; display: flex; gap: 16px; align-items: flex-start; }
-  .deck-list {
-    width: 190px; flex: 0 0 190px;
-    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-    padding: 10px; position: sticky; top: 16px;
+  .layout { max-width: 960px; margin: 0 auto; }
+  .main { min-width: 0; }
+
+  /* ---------- 카테고리 탭 (레이드/아발론/대난투) ---------- */
+  .category-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+  .cat-btn {
+    flex: 1; text-align: center; padding: 10px 8px; border-radius: 10px; font-size: 14px; font-weight: 700;
+    background: var(--panel); border: 1px solid var(--border); color: var(--muted); cursor: pointer;
   }
-  .deck-list .item {
-    padding: 8px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--text);
-    margin-bottom: 2px;
+  .cat-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  /* ---------- 덱 선택 (상단, 많은 덱을 줄바꿈으로 나열) ---------- */
+  .deck-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .deck-picker .item {
+    padding: 7px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; color: var(--text);
+    background: var(--panel); border: 1px solid var(--border); white-space: nowrap;
   }
-  .deck-list .item:hover { background: var(--panel2); }
-  .deck-list .item.active { background: var(--blue); color: #fff; }
-  .deck-list .newdeck { width: 100%; margin-top: 8px; background: var(--panel2); }
-  .main { flex: 1; min-width: 0; }
+  .deck-picker .item:hover { background: var(--panel2); }
+  .deck-picker .item.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; }
+  .deck-picker .newdeck { background: var(--panel2); border: 1px dashed var(--border); color: var(--muted); }
+  .deck-picker .empty { color: var(--muted); font-size: 13px; padding: 8px 4px; }
+
+  /* ---------- 관리자: 덱 카테고리 지정 ---------- */
+  .cat-assign { display: flex; gap: 6px; margin: 0 0 10px; }
+  .cat-assign button {
+    padding: 5px 12px; border-radius: 8px; font-size: 12px; background: var(--panel2); border: 1px solid var(--border); color: var(--muted); cursor: pointer;
+  }
+  .cat-assign button.active { background: var(--gold); color: #000; border-color: var(--gold); font-weight: 700; }
 
   /* ---------- 덱 카드 (기존 시안 디자인) ---------- */
   .deck {
@@ -105,18 +119,20 @@
     border: 1px solid var(--border);
   }
   :root[data-theme="light"] .deck { box-shadow: 0 4px 20px rgba(20,30,50,0.08); }
-  .deck h1 { font-size: 22px; margin: 0 0 16px 4px; }
+  .deck h1 { font-size: clamp(16px, 4.2vw, 22px); margin: 0 0 16px 4px; }
   .row { display: grid; gap: 10px; margin-bottom: 14px; }
-  .row.chars { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
-  .row.gear { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); margin-bottom: 6px; }
-  .row.gear + .row.cards { margin-top: 8px; }
-  .row.cards { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
+  /* 캐릭터·장비·카드를 한 세트로 묶어 세로로 쌓고, 세트들을 한 줄에 나란히 배치.
+     이렇게 하면 이 한 줄만 스크롤되므로(스크롤 컨테이너가 하나) 모바일에서 캐릭터/장비/카드가
+     따로 놀지 않고 항상 같이 움직인다. */
+  .row.charset { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); align-items: start; }
+  .char-set { display: flex; flex-direction: column; gap: 6px; }
+  .set-gear { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
   .row.pets { grid-template-columns: repeat(3, 0.72fr) 1.8fr; align-items: stretch; gap: 14px; }
   .row.pets > div:not(.position-box) { align-self: start; }
 
   .card-char { position: relative; border-radius: 10px; overflow: hidden; border: 2px solid var(--border); background: var(--panel2); }
   .card-char img { width: 100%; display: block; aspect-ratio: 3/4; object-fit: cover; }
-  .card-char .name { background: #000; color: #fff; text-align: center; font-size: 13px; padding: 6px 0; font-weight: 600; }
+  .card-char .name { background: #000; color: #fff; text-align: center; font-size: clamp(10px, 2.6vw, 13px); padding: 6px 0; font-weight: 600; }
   .card-char .badge {
     position: absolute; top: 6px; right: 6px; min-width: 22px; height: 20px; padding: 0 7px;
     border-radius: 6px; color: #fff; display: flex; align-items: center; justify-content: center;
@@ -131,11 +147,11 @@
 
   .card-skill { position: relative; border-radius: 10px; overflow: hidden; border: 2px solid var(--border); background: var(--panel2); }
   .card-skill img { width: 100%; aspect-ratio: 1/1; object-fit: cover; object-position: 50% 50%; display: block; }
-  .card-skill .name { background: #000; color: #fff; text-align: center; font-size: 12px; padding: 5px 0; }
+  .card-skill .name { background: #000; color: #fff; text-align: center; font-size: clamp(10px, 2.4vw, 12px); padding: 5px 0; }
 
   .pet-card { position: relative; border-radius: 10px; overflow: hidden; border: 2px solid var(--border); background: var(--panel2); }
   .pet-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; object-position: 50% 22%; display: block; }
-  .pet-card .name { background: #000; color: #fff; text-align: center; font-size: 12px; padding: 5px 0; }
+  .pet-card .name { background: #000; color: #fff; text-align: center; font-size: clamp(10px, 2.4vw, 12px); padding: 5px 0; }
   .pet-pos { text-align: center; font-size: 10px; color: var(--gold); margin-bottom: 4px; }
 
   .position-box { background: var(--panel2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; height: 100%; }
@@ -155,14 +171,16 @@
   .cycle { margin-bottom: 16px; }
   .cycle:last-of-type { margin-bottom: 0; }
   .cycle-label { display: inline-block; font-size: 11px; font-weight: 700; color: #000; background: var(--gold); border-radius: 5px; padding: 2px 8px; margin-bottom: 8px; }
-  .timeline-row { display: flex; align-items: flex-start; gap: 4px; flex-wrap: wrap; }
-  .step { display: flex; flex-direction: column; align-items: center; width: 92px; position: relative; }
+  /* 한 사이클의 스텝들은 줄바꿈으로 겹치듯 쌓이지 않고 항상 한 줄에 나오도록 한다.
+     화면이 좁으면 칸 너비/간격을 줄여서 최대한 맞추고, 그래도 안 들어가면 가로 스크롤로 넘긴다. */
+  .timeline-row { display: flex; align-items: flex-start; gap: clamp(2px, 1vw, 4px); flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+  .step { display: flex; flex-direction: column; align-items: center; width: clamp(56px, 15vw, 92px); flex: 0 0 auto; position: relative; }
   .step-num { position: absolute; top: -4px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--gold); color: #000; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-  .step img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; object-position: 50% 22%; border: 2px solid var(--border); }
-  .step-name { font-size: 10.5px; margin-top: 4px; text-align: center; color: var(--text); }
-  .step-time { font-size: 9.5px; margin-top: 1px; text-align: center; color: var(--blue); }
-  .step-memo { font-size: 9.5px; margin-top: 5px; text-align: center; color: var(--muted); line-height: 1.35; word-break: keep-all; border-top: 1px dashed var(--border); padding-top: 4px; width: 100%; }
-  .arrow { color: var(--muted); font-size: 14px; padding-top: 14px; }
+  .step img { width: clamp(34px, 9vw, 48px); height: clamp(34px, 9vw, 48px); border-radius: 50%; object-fit: cover; object-position: 50% 22%; border: 2px solid var(--border); }
+  .step-name { font-size: clamp(9px, 2.4vw, 10.5px); margin-top: 4px; text-align: center; color: var(--text); }
+  .step-time { font-size: clamp(11px, 3vw, 13px); font-weight: 700; margin-top: 2px; text-align: center; color: var(--blue); }
+  .step-memo { font-size: clamp(10px, 2.6vw, 12px); margin-top: 5px; text-align: center; color: var(--muted); line-height: 1.35; word-break: keep-all; border-top: 1px dashed var(--border); padding-top: 4px; width: 100%; }
+  .arrow { color: var(--muted); font-size: clamp(11px, 2.8vw, 14px); padding-top: 12px; flex: 0 0 auto; }
   .warn-list { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
   .warn-item { color: var(--gold); font-size: 13px; line-height: 1.7; }
   .warn-item .tile-remove, .warn-list .add-btn.small { position: static; width: auto; height: auto; border-radius: 5px; padding: 1px 6px; font-size: 10px; margin-left: 6px; background: var(--red); vertical-align: middle; }
@@ -250,30 +268,24 @@
     body { padding: 12px; }
     .topbar h1 { font-size: 16px; }
     .layout { flex-direction: column; gap: 12px; }
-    .deck-list { width: 100%; flex: 1 1 auto; position: static; }
     .main { width: 100%; }
     .deck { padding: 14px 10px; border-radius: 12px; }
-    .deck h1, .title-text h1 { font-size: 17px; }
     .title-bar { min-height: 64px; }
     .title-boss { max-width: 65%; }
 
-    /* 캐릭터/장비/카드 줄은 5칸을 억지로 욱여넣지 않고, 한 줄 가로 스크롤로 바꿔서
-       이름 글자가 세로로 한 글자씩 쪼개지는 걸 막는다. */
-    .row.chars, .row.gear, .row.cards {
+    /* 캐릭터+장비+카드가 "한 세트"로 묶여 있는 이 한 줄만 가로 스크롤한다.
+       스크롤 컨테이너가 하나뿐이라 세 가지가 항상 같이 움직인다(따로 안 놀게 됨). */
+    .row.charset {
       display: flex !important; overflow-x: auto; -webkit-overflow-scrolling: touch;
-      gap: 6px; padding-bottom: 6px; scroll-snap-type: x proximity;
+      gap: 8px; padding-bottom: 6px; scroll-snap-type: x proximity;
     }
-    .row.chars > *, .row.cards > * { flex: 0 0 78px; scroll-snap-align: start; }
-    .row.gear > * { flex: 0 0 54px; }
-    .card-char .name, .card-skill .name { font-size: 11px; padding: 4px 0; }
+    .char-set { flex: 0 0 84px; scroll-snap-align: start; }
     .gear-cell img { padding: 4px; }
 
     /* 펫 줄: 배치 미리보기 박스가 펫 3칸과 나란히 끼어 겹쳐 보이던 것을,
        펫 3칸을 먼저 한 줄로 보여주고 배치 박스는 그 아래로 내린다. */
     .row.pets { grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .row.pets .position-box { grid-column: 1 / -1; margin-top: 4px; }
-
-    .step { width: 78px; }
     .save-bar { flex-wrap: wrap; }
     .save-bar #save-msg { flex: 1 1 100%; margin-right: 0; }
   }
@@ -301,12 +313,13 @@
 </div>
 
 <div class="layout">
-  <div class="deck-list" id="deck-list">
-    <div class="empty" style="padding:20px 8px;">불러오는 중...</div>
+  <div class="category-tabs" id="category-tabs"></div>
+  <div class="deck-picker" id="deck-picker">
+    <div class="empty">불러오는 중...</div>
   </div>
   <div class="main">
     <div id="admin-hint" style="display:none">관리자 모드: 이미지를 클릭하면 바로 바꿀 수 있고, 글자를 클릭하면 바로 고칠 수 있어요.</div>
-    <div id="viewer"><div class="deck"><div class="empty">왼쪽에서 덱을 선택하세요</div></div></div>
+    <div id="viewer"><div class="deck"><div class="empty">위에서 덱을 선택하세요</div></div></div>
     <div id="admin-bar" class="save-bar" style="display:none">
       <span id="save-msg" class="msg"></span>
       <button class="small-btn danger" id="admin-delete-btn" type="button">이 덱 삭제</button>
@@ -328,6 +341,7 @@ var state = {
   adminPw: '',
   isAdmin: false,
   decks: [],
+  category: '레이드', // 상단 카테고리 탭(레이드/아발론/대난투) 중 현재 선택된 것
   currentId: null,
   currentDeck: null,
   characters: [],
@@ -417,17 +431,47 @@ function tryAdminLogin(pw, silent) {
   });
 }
 
-/* ---------- 덱 목록 ---------- */
-function renderDeckList() {
-  var el = document.getElementById('deck-list');
-  var html = '';
-  state.decks.forEach(function (d) {
-    html += '<div class="item' + (d.id === state.currentId ? ' active' : '') + '" onclick="selectDeck(\'' + d.id + '\')">' + esc(d.title) + '</div>';
-  });
-  if (state.isAdmin) {
-    html += '<button class="pill-btn newdeck" onclick="newDeck()">+ 새 덱 만들기</button>';
+/* ---------- 카테고리 탭 + 덱 선택(상단) ---------- */
+var CATEGORIES = ['레이드', '아발론', '대난투'];
+
+function deckCategory_(d) { return d.category || CATEGORIES[0]; } // 카테고리 없는 예전 덱은 "레이드"로 취급
+
+function renderCategoryTabs() {
+  var el = document.getElementById('category-tabs');
+  el.innerHTML = CATEGORIES.map(function (cat) {
+    return '<button type="button" class="cat-btn' + (cat === state.category ? ' active' : '') + '" onclick="selectCategory(\'' + cat + '\')">' + esc(cat) + '</button>';
+  }).join('');
+}
+
+function selectCategory(cat) {
+  state.category = cat;
+  renderCategoryTabs();
+  renderDeckPicker();
+  // 지금 보고 있는 덱이 이 카테고리에 없으면 선택 해제
+  var stillHere = state.decks.some(function (d) { return d.id === state.currentId && deckCategory_(d) === cat; });
+  if (!stillHere) {
+    state.currentId = null;
+    state.currentDeck = null;
+    renderCurrentDeck();
   }
-  el.innerHTML = html || '<div class="empty" style="padding:20px 8px;">등록된 덱이 없습니다</div>';
+}
+
+function renderDeckPicker() {
+  var el = document.getElementById('deck-picker');
+  var decksInCat = state.decks.filter(function (d) { return deckCategory_(d) === state.category; });
+  var html = decksInCat.map(function (d) {
+    return '<div class="item' + (d.id === state.currentId ? ' active' : '') + '" onclick="selectDeck(\'' + d.id + '\')">' + esc(d.title) + '</div>';
+  }).join('');
+  if (state.isAdmin) {
+    html += '<button type="button" class="item newdeck" onclick="newDeck()">+ 새 덱 만들기</button>';
+  }
+  el.innerHTML = html || '<div class="empty">이 카테고리에 등록된 덱이 없습니다</div>';
+}
+
+// 예전 renderDeckList() 호출부와의 호환을 위해 유지: 탭+피커를 한번에 다시 그린다.
+function renderDeckList() {
+  renderCategoryTabs();
+  renderDeckPicker();
 }
 
 function selectDeck(id) {
@@ -494,35 +538,34 @@ function posOptionsHtml_(col, slot) {
 function renderDeckHtml(deck, editable) {
   var chars = sortedCharsForRow(deck.characters || []);
 
-  var charsHtml = chars.map(function (c, i) {
+  // 캐릭터·장비·카드를 한 세트로 묶어서 세로 한 칸(.char-set)에 그린다.
+  // (예전에는 캐릭터/장비/카드가 각각 따로 된 가로줄이라 모바일에서 셋이 따로 스크롤됐음 —
+  //  이제 스크롤 컨테이너가 하나뿐이라 항상 같이 움직인다.)
+  var charSetsHtml = chars.map(function (c) {
     var idx = (deck.characters || []).indexOf(c);
     var badge = editable
       ? '<select class="badge-select ' + COL_BADGE[c.col] + '" data-edit-pos="' + idx + '">' + posOptionsHtml_(c.col, c.slot) + '</select>'
       : '<div class="badge ' + COL_BADGE[c.col] + '">' + c.slot + '</div>';
-    var overlay = editable ? '<select class="tile-overlay" data-edit-char="' + idx + '">' + optionsHtml_(state.characters, c.name) + '</select>' : '';
+    var charOverlay = editable ? '<select class="tile-overlay" data-edit-char="' + idx + '">' + optionsHtml_(state.characters, c.name) + '</select>' : '';
     var removeBtn = editable ? '<button type="button" class="tile-remove" data-remove-char="' + idx + '" title="캐릭터 삭제">×</button>' : '';
     var dragHandle = editable ? '<button type="button" class="drag-handle" data-drag-handle="set" title="드래그해서 이 세트(캐릭터·장비·카드)를 다른 자리와 바꾸기">⠿</button>' : '';
-    return '<div class="card-char' + (editable ? ' editable' : '') + '"' + (editable ? ' data-drag-set="' + idx + '"' : '') + '><img src="' + esc(c.portrait) + '">' +
-      badge + '<div class="name">' + esc(c.name) + '</div>' + overlay + removeBtn + dragHandle + '</div>';
-  }).join('');
+    var charTile = '<div class="card-char' + (editable ? ' editable' : '') + '"><img src="' + esc(c.portrait) + '">' +
+      badge + '<div class="name">' + esc(c.name) + '</div>' + charOverlay + removeBtn + dragHandle + '</div>';
 
-  var gearRow1 = chars.map(function (c) {
-    var idx = (deck.characters || []).indexOf(c);
-    return gearCell_(c.weapon, idx, 'weapon', editable) + gearCell_(c.armor, idx, 'armor', editable);
-  }).join('');
-  var gearRow2 = chars.map(function (c) {
-    var idx = (deck.characters || []).indexOf(c);
-    return gearCell_(c.item, idx, 'item', editable) + gearCell_(c.rune, idx, 'rune', editable);
-  }).join('');
+    var gearGrid = '<div class="set-gear">' +
+      gearCell_(c.weapon, idx, 'weapon', editable) + gearCell_(c.armor, idx, 'armor', editable) +
+      gearCell_(c.item, idx, 'item', editable) + gearCell_(c.rune, idx, 'rune', editable) +
+      '</div>';
 
-  // 카드는 캐릭터와 완전히 독립적으로 고를 수 있다 (자기 카드가 아닌 다른 카드를 쓰는 경우가 더 많음).
-  // 아직 카드가 따로 지정되지 않은 기존 덱은 캐릭터 이름/이미지를 그대로 보여준다(예전 방식과 호환).
-  var cardsHtml = chars.map(function (c) {
-    var idx = (deck.characters || []).indexOf(c);
+    // 카드는 캐릭터와 완전히 독립적으로 고를 수 있다 (자기 카드가 아닌 다른 카드를 쓰는 경우가 더 많음).
+    // 아직 카드가 따로 지정되지 않은 기존 덱은 캐릭터 이름/이미지를 그대로 보여준다(예전 방식과 호환).
+    // 이름 표시는 "~카드"라는 말 없이 이름만 보여준다.
     var cardName = (c.card && c.card.name) || c.name;
     var cardImg = (c.card && c.card.img) || '';
-    var overlay = editable ? '<select class="tile-overlay" data-edit-card="' + idx + '">' + optionsHtml_(state.cards, cardName) + '</select>' : '';
-    return '<div class="card-skill' + (editable ? ' editable' : '') + '"><img src="' + esc(cardImg) + '"><div class="name">' + esc(cardName) + ' 카드</div>' + overlay + '</div>';
+    var cardOverlay = editable ? '<select class="tile-overlay" data-edit-card="' + idx + '">' + optionsHtml_(state.cards, cardName, stripCardWord_) + '</select>' : '';
+    var cardTile = '<div class="card-skill' + (editable ? ' editable' : '') + '"><img src="' + esc(cardImg) + '"><div class="name">' + esc(stripCardWord_(cardName)) + '</div>' + cardOverlay + '</div>';
+
+    return '<div class="char-set"' + (editable ? ' data-drag-set="' + idx + '"' : '') + '>' + charTile + gearGrid + cardTile + '</div>';
   }).join('');
 
   var pets = deck.pets || [];
@@ -600,6 +643,12 @@ function renderDeckHtml(deck, editable) {
     timelineHtml += '</div>';
   }
 
+  var catAssignHtml = editable
+    ? '<div class="cat-assign">' + CATEGORIES.map(function (cat) {
+        return '<button type="button" class="' + (deckCategory_(deck) === cat ? 'active' : '') + '" data-set-category="' + esc(cat) + '">' + esc(cat) + '</button>';
+      }).join('') + '</div>'
+    : '';
+
   var bossImg = '<img src="' + esc(deck.bossIcon || '') + '">';
   var titleBar = '<div class="title-bar">' +
     (editable
@@ -614,12 +663,9 @@ function renderDeckHtml(deck, editable) {
 
   var addCharRow = editable ? '<div class="add-row"><button type="button" class="add-btn" data-add-char>+ 캐릭터 추가</button></div>' : '';
 
-  return '<div class="deck' + (editable ? ' editing' : '') + '">' + titleBar +
-    '<div class="row chars" style="grid-template-columns:repeat(' + chars.length + ',1fr)">' + charsHtml + '</div>' +
+  return '<div class="deck' + (editable ? ' editing' : '') + '">' + catAssignHtml + titleBar +
+    '<div class="row charset" style="grid-template-columns:repeat(' + chars.length + ',1fr)">' + charSetsHtml + '</div>' +
     addCharRow +
-    '<div class="row gear" style="grid-template-columns:repeat(' + (chars.length * 2) + ',1fr)">' + gearRow1 + '</div>' +
-    '<div class="row gear" style="grid-template-columns:repeat(' + (chars.length * 2) + ',1fr)">' + gearRow2 + '</div>' +
-    '<div class="row cards" style="grid-template-columns:repeat(' + chars.length + ',1fr)">' + cardsHtml + '</div>' +
     '<div class="row pets">' + petsHtml + positionBoxHtml + '</div>' +
     timelineHtml +
     '</div>';
@@ -642,7 +688,7 @@ function blankCharSlot_(col, slot) {
 function newDeck() {
   var id = 'deck_' + Date.now();
   var blank = {
-    id: id, title: '새 덱', noteTag: '', bossIcon: '',
+    id: id, title: '새 덱', category: state.category, noteTag: '', bossIcon: '',
     // 대부분의 덱은 5명(후열1 · 중열2 · 전열2) 구성이라 기본으로 5칸을 미리 만들어 둔다.
     // 필요하면 "+ 캐릭터 추가"로 더 넣거나, 빈 칸을 그대로 두면 저장 시 제외된다.
     characters: [
@@ -656,7 +702,7 @@ function newDeck() {
   };
   state.currentId = id;
   state.currentDeck = blank;
-  state.decks.push({ id: id, title: '새 덱' });
+  state.decks.push({ id: id, title: '새 덱', category: state.category });
   renderDeckList();
   loadLibraries().then(renderCurrentDeck);
 }
@@ -680,14 +726,23 @@ function findIcon_(name) { return state.icons.find(function (i) { return i.name 
 
 // list: {name} 항목과 {divider:true,label} 구분줄 항목이 섞인 배열(캐릭터/카드/펫/장비 라이브러리 공통 형식).
 // 구분줄은 선택 불가능한 회색 옵션으로 표시된다.
-function optionsHtml_(list, selected) {
+// 카드 이름 끝에 붙는 "카드"라는 말은 화면에 표시할 때만 떼어낸다 (예: "염제 카드" -> "염제").
+// 실제 값(선택/매칭용 value)은 원본 이름을 그대로 쓴다.
+function stripCardWord_(name) {
+  if (!name) return name;
+  var stripped = String(name).replace(/\s*카드\s*$/, '').trim();
+  return stripped || name;
+}
+
+function optionsHtml_(list, selected, labelFn) {
   var html = '<option value="">-</option>';
   (list || []).forEach(function (item) {
     if (item.divider) {
       html += '<option value="" disabled>── ' + esc(item.label) + ' ──</option>';
       return;
     }
-    html += '<option value="' + esc(item.name) + '"' + (item.name === selected ? ' selected' : '') + '>' + esc(item.name) + '</option>';
+    var label = labelFn ? labelFn(item.name) : item.name;
+    html += '<option value="' + esc(item.name) + '"' + (item.name === selected ? ' selected' : '') + '>' + esc(label) + '</option>';
   });
   return html;
 }
@@ -887,6 +942,12 @@ function wireAdminInline_(container, deck) {
       refresh();
     };
   });
+  container.querySelectorAll('[data-set-category]').forEach(function (btn) {
+    btn.onclick = function () {
+      deck.category = btn.dataset.setCategory;
+      refresh();
+    };
+  });
 
   // 글자 클릭 → 바로 수정 (contenteditable). 재렌더링 없이 데이터만 갱신해서 커서 위치 유지.
   container.querySelectorAll('[contenteditable="true"]').forEach(function (el) {
@@ -985,7 +1046,8 @@ function saveDeck_ui(d) {
       msg.className = 'msg ok';
       state.currentDeck = d;
       var found = state.decks.find(function (x) { return x.id === d.id; });
-      if (found) found.title = d.title; else state.decks.push({ id: d.id, title: d.title });
+      if (found) { found.title = d.title; found.category = d.category; }
+      else state.decks.push({ id: d.id, title: d.title, category: d.category });
       renderDeckList();
     } else {
       msg.textContent = '저장 실패: ' + (res.error || '');
