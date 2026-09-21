@@ -508,8 +508,7 @@ function selectCategory(cat) {
   state.category = cat;
   state.group = null;
   renderCategoryTabs();
-  renderGroupPicker();
-  document.getElementById('deck-picker').innerHTML = '';
+  renderGroupPicker(); // 그룹 버튼과 덱 목록(또는 "등록된 덱이 없습니다" 안내)을 여기서 함께 그려준다.
   // 지금 보고 있는 덱이 이 카테고리에 없으면 선택 해제
   var stillHere = state.decks.some(function (d) { return d.id === state.currentId && deckCategory_(d) === cat; });
   if (!stillHere) {
