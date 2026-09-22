@@ -346,6 +346,39 @@
     .step-memo { font-size: 9px; overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
     .arrow { flex: 0 0 auto; font-size: 9px; padding: 0 1px; padding-top: 8px; }
   }
+
+  /* ---------- 이미지로 저장/공유할 때 강제로 좁은(모바일) 배치로 캡처 ----------
+     위 @media (max-width:700px)는 "지금 이 화면(브라우저 창)"이 좁을 때만 적용되는데,
+     PC의 넓은 창에서 "이미지로 저장"을 눌러도 카톡 등에서 보기 좋은 세로로 긴 비율이 나오게
+     하려면 화면 크기와 상관없이 항상 이 스타일을 강제로 써야 한다. 그래서 캡처용으로 그리는
+     화면 밖 사본에는 항상 .capture-narrow 클래스를 붙이고, 위 모바일 스타일을 그대로 복사해서
+     "화면 폭"이 아니라 "이 클래스가 붙었는지"로 적용되게 만들었다(내용은 위 블록과 동일하게 유지). */
+  .capture-narrow .deck { padding: 14px 10px; border-radius: 12px; }
+  .capture-narrow .title-bar { min-height: 64px; }
+  .capture-narrow .title-boss { max-width: 65%; }
+  .capture-narrow .row.charset { display: flex !important; flex-wrap: nowrap; overflow-x: visible; gap: 4px; padding-bottom: 0; }
+  .capture-narrow .char-set { flex: 1 1 0; min-width: 0; gap: 3px; }
+  .capture-narrow .set-gear { gap: 3px; }
+  .capture-narrow .gear-cell img { padding: 3px; }
+  .capture-narrow .card-char .badge { width: 16px; height: 16px; font-size: 10px; }
+  .capture-narrow .row.pets { grid-template-columns: repeat(3, 0.62fr) 1.3fr; gap: 6px; }
+  .capture-narrow .position-box { padding: 6px; border-radius: 8px; }
+  .capture-narrow .position-box .headers { gap: 4px; margin-bottom: 4px; }
+  .capture-narrow .position-box .headers div { font-size: 9px; padding: 3px 0; border-radius: 5px; }
+  .capture-narrow .position-box .cols { gap: 4px; }
+  .capture-narrow .position-col { gap: 3px; }
+  .capture-narrow .position-col .pname { font-size: 8.5px; margin-top: 1px; }
+  .capture-narrow .pet-pos { font-size: 8.5px; margin-bottom: 2px; }
+  .capture-narrow .timeline { padding: 8px 8px; margin-top: 8px; }
+  .capture-narrow .timeline-title { margin-bottom: 6px; }
+  .capture-narrow .cycle { margin-bottom: 6px; }
+  .capture-narrow .timeline-row { overflow-x: visible; gap: 1px; padding-top: 6px; padding-bottom: 0; }
+  .capture-narrow .step { width: auto; flex: 1 1 0; min-width: 0; }
+  .capture-narrow .step img { width: 68%; height: auto; aspect-ratio: 1/1; max-width: 36px; }
+  .capture-narrow .step-name { font-size: 8.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
+  .capture-narrow .step-time { font-size: 10px; margin-top: 0; }
+  .capture-narrow .step-memo { font-size: 9px; overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
+  .capture-narrow .arrow { flex: 0 0 auto; font-size: 9px; padding: 0 1px; padding-top: 8px; }
 </style>
 </head>
 <body>
@@ -354,7 +387,7 @@
   <div class="box">
     <h2>가온누리 정보 모음</h2>
     <p>길드원 비밀번호를 입력해주세요</p>
-    <input id="gate-pw" type="password" placeholder="비밀번호">
+    <input id="gate-pw" type="password" placeholder="비밀번호" onkeydown="if(event.key==='Enter')tryLogin()">
     <button onclick="tryLogin()">입장하기</button>
     <div class="err" id="gate-err"></div>
   </div>
@@ -876,11 +909,14 @@ function downloadDeckImage(mode) {
 
   // 관리자 모드에서 열어놨더라도 선택박스/삭제버튼 같은 편집용 UI 없이 깨끗하게 캡처하기 위해,
   // 화면 밖에 읽기 전용(editable=false)으로 한 번 더 그려서 그걸 캡처한다.
+  // 예전엔 900px 폭으로 캡처해서 카톡 등에서 보면 옆으로 너무 넙대대하게 보였는데,
+  // 폭을 좁히고 .capture-narrow(모바일용 배치)를 강제로 씌워서 세로로 더 긴, 보기 편한 비율로 나오게 했다.
   var wrap = document.createElement('div');
+  wrap.className = 'capture-narrow';
   wrap.style.position = 'fixed';
   wrap.style.left = '-99999px';
   wrap.style.top = '0';
-  wrap.style.width = '900px';
+  wrap.style.width = '480px';
   wrap.innerHTML = renderDeckHtml(deck, false);
   document.body.appendChild(wrap);
   var deckEl = wrap.querySelector('.deck');
