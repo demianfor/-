@@ -119,6 +119,8 @@
   .modal-box {
     background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
     padding: 20px; width: 100%; max-width: 360px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    max-height: 85vh; overflow-y: auto; box-sizing: border-box;
+    display: flex; flex-direction: column;
   }
   .modal-box h3 { margin: 0 0 14px; font-size: 16px; }
   .modal-field { display: block; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
@@ -126,14 +128,14 @@
     display: block; width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 8px;
     border: 1px solid var(--border); background: var(--panel2); color: var(--text); font-size: 14px; box-sizing: border-box;
   }
-  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; flex: 0 0 auto; }
 
   /* ---------- 목록 관리 모달 (주요/나머지 드래그 관리) ---------- */
   .modal-box.wide { max-width: 920px; }
-  .lib-add-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .lib-add-row { display: flex; gap: 8px; margin-bottom: 14px; flex: 0 0 auto; }
   .lib-add-row select { flex: 1 1 auto; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel2); color: var(--text); font-size: 13px; }
-  .lib-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
-  .lib-col { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; min-height: 160px; }
+  .lib-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+  .lib-col { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; min-height: 160px; max-height: 50vh; overflow-y: auto; }
   .lib-col h4 { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
   .lib-col.drag-over { outline: 2px dashed var(--blue); outline-offset: -2px; }
   .lib-chip-list { display: flex; flex-direction: column; gap: 6px; min-height: 40px; }
@@ -1213,9 +1215,12 @@ function renderDeckHtml(deck, editable) {
     var charTile = '<div class="card-char' + (editable ? ' editable' : '') + '"><img src="' + esc(livePortrait_(c.name, c.portrait)) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)">' +
       badge + '<div class="name">' + esc(c.name) + '</div>' + charOverlay + removeBtn + dragHandle + '</div>';
 
+    // 장비 드롭다운을 이 캐릭터의 직업(기사/법사/힐러/사수)에 맞는 것만 보여주기 위해 직업을 미리 찾아둔다.
+    var charLib = findChar_(c.name);
+    var role = charLib && charLib.role;
     var gearGrid = '<div class="set-gear">' +
-      gearCell_(c.weapon, idx, 'weapon', editable) + gearCell_(c.armor, idx, 'armor', editable) +
-      gearCell_(c.item, idx, 'item', editable) + gearCell_(c.rune, idx, 'rune', editable) +
+      gearCell_(c.weapon, idx, 'weapon', editable, role) + gearCell_(c.armor, idx, 'armor', editable, role) +
+      gearCell_(c.item, idx, 'item', editable, role) + gearCell_(c.rune, idx, 'rune', editable, role) +
       '</div>';
 
     // 카드는 캐릭터와 완전히 독립적으로 고를 수 있다 (자기 카드가 아닌 다른 카드를 쓰는 경우가 더 많음).
@@ -1350,10 +1355,37 @@ function renderDeckHtml(deck, editable) {
     '</div>';
 }
 
-function gearCell_(g, idx, kind, editable) {
+// state.equip[kind]는 "공용/기사/법사/힐러/사수/미분류" 구분줄이 섞인 전체 목록이다.
+// 캐릭터의 직업(role)이 있으면 "공용" + 그 직업 칸 항목만 골라서 드롭다운에 보여준다.
+// (아직 "목록 관리"에서 분류를 안 해서 구분줄이 아예 없거나, 직업 정보가 없거나, 필터링했더니
+// 하나도 안 걸리면 — 실수로 목록이 텅 비어버리는 걸 막기 위해 — 안전하게 전체 목록을 그대로 보여준다.)
+// 지금 이미 장착돼 있는 장비가 필터링 결과에 없으면(직업이 바뀌었거나 분류가 나중에 바뀐 경우)
+// 그래도 선택된 상태로는 보이도록 목록 맨 뒤에 끼워 넣는다.
+function equipOptionsForRole_(kind, role, currentName) {
+  var list = state.equip[kind] || [];
+  var hasDividers = list.some(function (e) { return e.divider; });
+  var filtered = list;
+  if (hasDividers && role) {
+    var current = null;
+    var out = [];
+    list.forEach(function (e) {
+      if (e.divider) { current = e.label; return; }
+      if (current === '공용' || current === role) out.push(e);
+    });
+    if (out.length) filtered = out;
+  }
+  if (currentName && !filtered.some(function (e) { return !e.divider && e.name === currentName; })) {
+    var found = list.find(function (e) { return !e.divider && e.name === currentName; });
+    if (found) filtered = filtered.concat([found]);
+  }
+  return filtered;
+}
+
+function gearCell_(g, idx, kind, editable, role) {
   var name = (g && g.name) || '';
   var icon = (g && g.icon) || '';
-  var overlay = editable ? '<select class="tile-overlay" data-edit-gear="' + idx + ':' + kind + '">' + optionsHtml_(state.equip[kind] || [], name) + '</select>' : '';
+  var options = equipOptionsForRole_(kind, role, name);
+  var overlay = editable ? '<select class="tile-overlay" data-edit-gear="' + idx + ':' + kind + '">' + optionsHtml_(options, name) + '</select>' : '';
   return '<div class="gear-cell' + (editable ? ' editable' : '') + '"><img src="' + esc(icon) + '" title="' + esc(name) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)">' + overlay + '</div>';
 }
 
@@ -1840,10 +1872,10 @@ var LIB_CATEGORY_CONFIG_ = {
   character: { buckets: ['주요', '나머지'], mode: 'position' },
   card: { buckets: ['주요', '나머지'], mode: 'position' },
   pet: { buckets: ['주요', '나머지'], mode: 'position' },
-  weapon: { buckets: ['기사', '법사', '힐러', '사수'], mode: 'label' },
-  armor: { buckets: ['기사', '법사', '힐러', '사수'], mode: 'label' },
-  item: { buckets: ['기사', '법사', '힐러', '사수'], mode: 'label' },
-  rune: { buckets: ['기사', '법사', '힐러', '사수'], mode: 'label' }
+  weapon: { buckets: ['공용', '기사', '법사', '힐러', '사수'], mode: 'label' },
+  armor: { buckets: ['공용', '기사', '법사', '힐러', '사수'], mode: 'label' },
+  item: { buckets: ['공용', '기사', '법사', '힐러', '사수'], mode: 'label' },
+  rune: { buckets: ['공용', '기사', '법사', '힐러', '사수'], mode: 'label' }
 };
 var LIB_UNSORTED_BUCKET_ = '미분류'; // 'label' 모드에서 아직 직업이 안 정해진(구분줄 라벨이 안 맞는) 항목이 모이는 칸
 
