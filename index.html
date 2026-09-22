@@ -86,35 +86,18 @@
   .layout { max-width: 960px; margin: 0 auto; }
   .main { min-width: 0; }
 
-  /* ---------- 카테고리 탭 (레이드/아발론/대난투) ---------- */
-  .category-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
-  .cat-btn {
-    flex: 1; text-align: center; padding: 10px 8px; border-radius: 10px; font-size: 14px; font-weight: 700;
-    background: var(--panel); border: 1px solid var(--border); color: var(--muted); cursor: pointer;
+  /* ---------- 메뉴 (카테고리 → 그룹 → 번호, 드롭다운 3단) ---------- */
+  .menu-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .menu-row select {
+    flex: 1 1 140px; min-width: 110px; padding: 10px 30px 10px 12px; border-radius: 10px;
+    font-size: 14px; font-weight: 600; color: var(--text); background: var(--panel);
+    border: 1px solid var(--border); cursor: pointer; appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path fill='%23888' d='M5.5 7.5l4.5 4.5 4.5-4.5z'/></svg>");
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 14px;
   }
-  .cat-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
-
-  /* ---------- 덱 선택 (상단, 많은 덱을 줄바꿈으로 나열) ---------- */
-  .deck-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-  .deck-picker .item {
-    padding: 7px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; color: var(--text);
-    background: var(--panel); border: 1px solid var(--border); white-space: nowrap;
-  }
-  .deck-picker .item:hover { background: var(--panel2); }
-  .deck-picker .item.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; }
-  .deck-picker .newdeck { background: var(--panel2); border: 1px dashed var(--border); color: var(--muted); }
-  .deck-picker .empty { color: var(--muted); font-size: 13px; padding: 8px 4px; }
-
-  /* ---------- 그룹 선택 (요일/던전/모드) ---------- */
-  .group-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-  .group-tabs .item {
-    padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text);
-    background: var(--panel); border: 1px solid var(--border); white-space: nowrap;
-  }
-  .group-tabs .item:hover { background: var(--panel2); }
-  .group-tabs .item.active { background: var(--blue); color: #fff; border-color: var(--blue); }
-  .group-tabs .back { background: var(--panel2); border: 1px dashed var(--border); color: var(--muted); font-weight: 500; }
-  .group-tabs .empty { color: var(--muted); font-size: 13px; padding: 8px 4px; }
+  .menu-row select:disabled { opacity: 0.45; cursor: default; }
+  .menu-row select:focus { outline: none; border-color: var(--blue); }
+  #sel-category { font-weight: 700; }
 
   /* ---------- 로딩 표시 ---------- */
   .loading-msg {
@@ -388,12 +371,11 @@
 </div>
 
 <div class="layout">
-  <div class="category-tabs" id="category-tabs"></div>
-  <div class="group-tabs" id="castle-picker"></div>
-  <div class="group-tabs" id="group-picker">
-    <div class="empty">불러오는 중...</div>
+  <div class="menu-row">
+    <select id="sel-category" onchange="onCategoryChange_(this.value)"></select>
+    <select id="sel-group" onchange="onGroupChange_(this.value)"><option>불러오는 중...</option></select>
+    <select id="sel-deck" onchange="onDeckSelectChange_(this.value)"></select>
   </div>
-  <div class="deck-picker" id="deck-picker"></div>
   <div class="main">
     <div id="admin-hint" style="display:none">관리자 모드: 이미지를 클릭하면 바로 바꿀 수 있고, 글자를 클릭하면 바로 고칠 수 있어요.</div>
     <div id="deck-toolbar" style="display:none;text-align:right;margin-bottom:8px">
@@ -602,9 +584,16 @@ var GROUP_ORDER = {
   '아발론': ['엘다리아 성문', '엘다리아 보스', '엘아이아 성문', '엘아이아 보스'],
   '대난투': ['산양', '흑랑', '카우', '묘족']
 };
-// 성 이름 단계가 필요한 카테고리와, 그 성 이름들의 노출 순서.
-var CASTLE_ORDER = {
-  '아발론': ['엘다리아', '엘아이아']
+// 레이드 그룹(요일)은 드롭다운에 "보스 이름(요일)"로 보여준다. 값(월/화/...)은 그대로 두고 표시만 바꾼다.
+var RAID_GROUP_LABEL = {
+  '월': '주시자의 여왕(월)',
+  '화': '아그네스(화)',
+  '수': '예티(수)',
+  '목': '독룡 파프니르(목)',
+  '금': '전사장 칼레온(금)',
+  '토(마법덱)': '염제 케이·마법덱(토)',
+  '토(물리덱)': '염제 케이·물리덱(토)',
+  '일': '메두사(일)'
 };
 
 // 요일/그룹별 기본 보스 이미지 (드라이브 "가온누리_안정이미지" 폴더). 덱에 bossIcon이 따로 지정돼
@@ -635,87 +624,16 @@ function defaultBossIcon_(deck) {
 
 function deckCategory_(d) { return d.category || CATEGORIES[0]; } // 카테고리 없는 예전 덱은 "레이드"로 취급
 function deckGroup_(d) { return d.group || ''; } // 그룹 없는 예전 덱은 빈 그룹으로 취급
-function needsCastleStep_(cat) { return !!CASTLE_ORDER[cat]; }
-// group 값("엘다리아 성문")에서 앞쪽 성 이름("엘다리아")만 뽑아낸다.
-function deckCastle_(d) {
-  var g = deckGroup_(d);
-  var sp = g.indexOf(' ');
-  return sp === -1 ? g : g.substring(0, sp);
-}
-// 성 이름 단계가 있는 카테고리에서, 그룹 버튼에는 성 이름을 뺀 나머지("성문"/"보스")만 보여준다.
+// 드롭다운에 보여줄 그룹 이름. 레이드는 "보스 이름(요일)"로, 나머지는 실제 값(그룹 값 자체가
+// 이미 "엘다리아 성문"/"산양"처럼 설명이 되는 이름이라 그대로 보여준다.
 function groupLabel_(cat, g) {
-  if (needsCastleStep_(cat) && state.castle && g.indexOf(state.castle) === 0) {
-    return g.substring(state.castle.length).trim() || g;
-  }
+  if (cat === '레이드' && RAID_GROUP_LABEL[g]) return RAID_GROUP_LABEL[g];
   return g;
 }
 
-function renderCategoryTabs() {
-  var el = document.getElementById('category-tabs');
-  el.innerHTML = CATEGORIES.map(function (cat) {
-    return '<button type="button" class="cat-btn' + (cat === state.category ? ' active' : '') + '" onclick="selectCategory(\'' + cat + '\')">' + esc(cat) + '</button>';
-  }).join('');
-}
-
-function selectCategory(cat) {
-  state.category = cat;
-  state.castle = null;
-  state.group = null;
-  renderCategoryTabs();
-  renderCastlePicker(); // 성 이름(있으면) → 그룹 → 번호까지 이어서 그려준다.
-  // 지금 보고 있는 덱이 이 카테고리에 없으면 선택 해제
-  var stillHere = state.decks.some(function (d) { return d.id === state.currentId && deckCategory_(d) === cat; });
-  if (!stillHere) {
-    state.currentId = null;
-    state.currentDeck = null;
-    renderCurrentDeck();
-  }
-}
-
-// 카테고리 안에서 실제 덱에 존재하는 성 이름 목록을 정해진 순서대로 구한다.
-function castlesInCategory_(cat) {
-  var decksInCat = state.decks.filter(function (d) { return deckCategory_(d) === cat; });
-  var present = {};
-  decksInCat.forEach(function (d) { var c = deckCastle_(d); if (c) present[c] = true; });
-  var order = CASTLE_ORDER[cat] || [];
-  var out = order.filter(function (c) { return present[c]; });
-  Object.keys(present).forEach(function (c) { if (out.indexOf(c) === -1) out.push(c); });
-  return out;
-}
-
-function renderCastlePicker() {
-  var el = document.getElementById('castle-picker');
-  if (!needsCastleStep_(state.category)) {
-    el.innerHTML = '';
-    renderGroupPicker();
-    return;
-  }
-  var castles = castlesInCategory_(state.category);
-  if (!castles.length) {
-    el.innerHTML = '';
-    renderGroupPicker();
-    return;
-  }
-  var html = castles.map(function (c) {
-    return '<div class="item' + (c === state.castle ? ' active' : '') + '" onclick="selectCastle(\'' + esc(c).replace(/'/g, "\\'") + '\')">' + esc(c) + '</div>';
-  }).join('');
-  el.innerHTML = html;
-  renderGroupPicker();
-}
-
-function selectCastle(c) {
-  state.castle = c;
-  state.group = null;
-  renderCastlePicker();
-}
-
-// 카테고리(+성 이름) 안의 그룹 목록을 정해진 순서대로 구한다 (실제 덱에 있는 그룹만).
+// 카테고리 안의 그룹 목록을 정해진 순서대로 구한다 (실제 덱에 있는 그룹만).
 function groupsInCategory_(cat) {
   var decksInCat = state.decks.filter(function (d) { return deckCategory_(d) === cat; });
-  if (needsCastleStep_(cat)) {
-    if (!state.castle) return []; // 성 이름을 아직 안 골랐으면 그룹(타입) 단계는 보여주지 않는다.
-    decksInCat = decksInCat.filter(function (d) { return deckCastle_(d) === state.castle; });
-  }
   var present = {};
   decksInCat.forEach(function (d) { if (deckGroup_(d)) present[deckGroup_(d)] = true; });
   var order = GROUP_ORDER[cat] || [];
@@ -724,61 +642,86 @@ function groupsInCategory_(cat) {
   return out;
 }
 
-function renderGroupPicker() {
-  var el = document.getElementById('group-picker');
-  if (needsCastleStep_(state.category) && !state.castle) {
-    // 성 이름을 먼저 골라야 하는 카테고리는, 성을 고르기 전엔 그룹/번호를 모두 비워둔다.
-    el.innerHTML = '';
-    renderDeckPicker();
-    return;
-  }
+/* ---------- 3단 드롭다운 메뉴 (카테고리 → 그룹 → 번호) ---------- */
+function renderCategorySelect_() {
+  var el = document.getElementById('sel-category');
+  el.innerHTML = CATEGORIES.map(function (cat) {
+    return '<option value="' + esc(cat) + '"' + (cat === state.category ? ' selected' : '') + '>' + esc(cat) + '</option>';
+  }).join('');
+}
+
+function onCategoryChange_(cat) {
+  state.category = cat;
+  state.group = null;
+  // 지금 보고 있는 덱이 이 카테고리에 없으면 선택 해제
+  var stillHere = state.decks.some(function (d) { return d.id === state.currentId && deckCategory_(d) === cat; });
+  if (!stillHere) { state.currentId = null; state.currentDeck = null; }
+  renderGroupSelect_();
+  if (!stillHere) renderCurrentDeck();
+}
+
+function renderGroupSelect_() {
+  var el = document.getElementById('sel-group');
   var groups = groupsInCategory_(state.category);
   if (!groups.length) {
-    // 그룹 구분이 없는(예전) 덱만 있는 카테고리는 그룹 단계를 건너뛰고 바로 번호 목록을 보여준다.
-    el.innerHTML = '';
-    renderDeckPicker();
+    el.innerHTML = '<option value="">-</option>';
+    el.disabled = true;
+    renderDeckSelect_();
     return;
   }
-  var html = groups.map(function (g) {
-    return '<div class="item' + (g === state.group ? ' active' : '') + '" onclick="selectGroup(\'' + esc(g).replace(/'/g, "\\'") + '\')">' + esc(groupLabel_(state.category, g)) + '</div>';
-  }).join('');
-  el.innerHTML = html;
-  renderDeckPicker();
+  el.disabled = false;
+  el.innerHTML = '<option value="" disabled' + (state.group ? '' : ' selected') + '>선택하세요</option>' +
+    groups.map(function (g) {
+      return '<option value="' + esc(g).replace(/"/g, '&quot;') + '"' + (g === state.group ? ' selected' : '') + '>' + esc(groupLabel_(state.category, g)) + '</option>';
+    }).join('');
+  renderDeckSelect_();
 }
 
-function selectGroup(g) {
+function onGroupChange_(g) {
   state.group = g;
-  renderGroupPicker();
+  state.currentId = null;
+  state.currentDeck = null;
+  renderDeckSelect_();
+  renderCurrentDeck();
 }
 
-function renderDeckPicker() {
-  var el = document.getElementById('deck-picker');
+function renderDeckSelect_() {
+  var el = document.getElementById('sel-deck');
   var cat = state.category;
-  if (needsCastleStep_(cat) && !state.castle) { el.innerHTML = ''; return; } // 성 이름 선택 전에는 번호 목록 숨김
   var groups = groupsInCategory_(cat);
   var decksInCat = state.decks.filter(function (d) { return deckCategory_(d) === cat; });
-  if (needsCastleStep_(cat)) decksInCat = decksInCat.filter(function (d) { return deckCastle_(d) === state.castle; });
   var decksToShow;
   if (groups.length) {
-    // 그룹 단계가 있으면 그룹을 고르기 전엔 번호 목록을 비워둔다.
-    if (!state.group) { el.innerHTML = ''; return; }
+    if (!state.group) {
+      el.innerHTML = '<option value="">-</option>';
+      el.disabled = true;
+      return;
+    }
     decksToShow = decksInCat.filter(function (d) { return deckGroup_(d) === state.group; });
   } else {
     decksToShow = decksInCat;
   }
-  var html = decksToShow.map(function (d, i) {
-    return '<div class="item' + (d.id === state.currentId ? ' active' : '') + '" onclick="selectDeck(\'' + d.id + '\')">' + esc(d.title) + '</div>';
-  }).join('');
-  if (state.isAdmin && (!groups.length || state.group)) {
-    html += '<button type="button" class="item newdeck" onclick="newDeck()">+ 새 덱 만들기</button>';
+  el.disabled = false;
+  var options = '<option value="" disabled' + (state.currentId ? '' : ' selected') + '>선택하세요</option>' +
+    decksToShow.map(function (d, i) {
+      return '<option value="' + d.id + '"' + (d.id === state.currentId ? ' selected' : '') + '>' + (i + 1) + '</option>';
+    }).join('');
+  if (state.isAdmin) {
+    options += '<option value="__new__">+ 새 덱 만들기</option>';
   }
-  el.innerHTML = html || '<div class="empty">등록된 덱이 없습니다</div>';
+  el.innerHTML = (decksToShow.length || state.isAdmin) ? options : '<option value="">등록된 덱이 없습니다</option>';
 }
 
-// 예전 renderDeckList() 호출부와의 호환을 위해 유지: 탭부터 번호까지 한번에 다시 그린다.
+function onDeckSelectChange_(id) {
+  if (id === '__new__') { newDeck(); return; }
+  if (!id) return;
+  selectDeck(id);
+}
+
+// 예전 renderDeckList() 호출부와의 호환을 위해 유지: 3단 드롭다운을 전부 다시 그린다.
 function renderDeckList() {
-  renderCategoryTabs();
-  renderCastlePicker();
+  renderCategorySelect_();
+  renderGroupSelect_();
 }
 
 function selectDeck(id) {
