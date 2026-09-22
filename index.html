@@ -459,7 +459,8 @@ var state = {
   pets: [],
   cards: [],
   icons: [],
-  equip: { weapon: [], armor: [], item: [], rune: [] }
+  equip: { weapon: [], armor: [], item: [], rune: [] },
+  librariesPromise: null // loadLibraries()가 지금 요청 중이면 그 Promise가 여기 들어있음 (중복 요청 방지용)
 };
 
 /* ---------- 유틸 ---------- */
@@ -1223,18 +1224,28 @@ function newDeck() {
 
 function loadLibraries() {
   if (state.characters.length) return Promise.resolve();
+  // 이미 요청이 진행 중이면(로그인 직후에 미리 불러오기 시작한 게 아직 안 끝났는데 덱을 클릭한 경우 등)
+  // 새로 또 요청을 보내지 않고 그 Promise를 그대로 돌려준다.
+  // (이걸 안 하면 bootstrap이 동시에 2번 나가고, Apps Script는 같은 스크립트로 오는 요청을 동시에
+  //  처리 못 해서 두 요청이 서로 줄을 서서 기다리다가 오히려 예전 5개 요청보다 더 느려지는 문제가 있었다.)
+  if (state.librariesPromise) return state.librariesPromise;
   // 예전에는 characters/pets/cards/icons/equip을 5개의 별도 요청으로 나눠서 불러왔는데,
   // Apps Script 웹앱은 같은 스크립트로 오는 요청을 동시에 처리하지 못하고 줄을 서서 처리하기 때문에
   // 5개를 "동시에" 보내도 실제로는 순서대로 처리되어 체감 속도가 5배 가까이 느려지는 문제가 있었다.
   // 서버에 새로 만든 bootstrap 액션 하나로 5개를 한 번에 받아온다(요청 1번으로 끝).
-  return api('bootstrap', { pw: state.viewPw }).then(function (r) {
+  state.librariesPromise = api('bootstrap', { pw: state.viewPw }).then(function (r) {
+    state.librariesPromise = null;
     if (!r.ok) return;
     state.characters = r.characters || [];
     state.pets = r.pets || [];
     state.cards = r.cards || [];
     state.icons = r.icons || [];
     state.equip = r.equip || { weapon: [], armor: [], item: [], rune: [] };
+  }, function (err) {
+    state.librariesPromise = null;
+    throw err;
   });
+  return state.librariesPromise;
 }
 
 function findChar_(name) { return state.characters.find(function (c) { return !c.divider && c.name === name; }); }
