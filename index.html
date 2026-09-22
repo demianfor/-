@@ -379,6 +379,13 @@
   .capture-narrow .step-time { font-size: 10px; margin-top: 0; }
   .capture-narrow .step-memo { font-size: 9px; overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
   .capture-narrow .arrow { flex: 0 0 auto; font-size: 9px; padding: 0 1px; padding-top: 8px; }
+  /* html2canvas가 그라디언트 + 둥근 모서리 + box-shadow 조합을 캡처할 때
+     배지 테두리가 각지게(사각형 티가 나게) 깨져 보이는 문제가 있어서,
+     캡처본에서는 배지를 그라디언트 대신 단색으로 바꾸고 그림자도 빼서 깔끔하게 나오게 한다. */
+  .capture-narrow .badge { box-shadow: none; }
+  .capture-narrow .badge-front { background: #d6434c; }
+  .capture-narrow .badge-mid   { background: #dba83a; }
+  .capture-narrow .badge-back  { background: #4a95d6; }
 </style>
 </head>
 <body>
@@ -872,29 +879,45 @@ function renderCurrentDeck() {
 /* ---------- 덱을 이미지로 저장/공유 (단톡방 공유용) ---------- */
 // 드라이브 썸네일 이미지는 브라우저에서 바로 캔버스에 그리면 CORS 때문에 빈 칸으로 나올 수 있어서,
 // Apps Script 서버가 대신 받아온 base64 데이터로 바꿔치기한 뒤 캡처한다.
-function toDataUrlViaProxy_(url) {
-  if (!url || /^data:/.test(url)) return Promise.resolve(url);
-  return api('imageData', { pw: state.viewPw, url: url }).then(function (res) {
-    return (res && res.ok && res.dataUrl) ? res.dataUrl : url;
-  }).catch(function () { return url; });
+// 예전엔 이미지 하나마다 서버에 따로 요청(imageData)을 보내서, 이미지 개수만큼 exec/echo 왕복이
+// 발생했다. 덱 불러올 때 bootstrap으로 묶었던 것처럼, 여기서도 이미지 URL을 한 번에 모아서
+// 서버 한 번의 실행(imageDataBatch, UrlFetchApp.fetchAll)으로 다 받아오게 바꿔서 훨씬 빨라졌다.
+function fetchImageDataUrlsBatch_(urls) {
+  var needIdx = [];
+  var needUrls = [];
+  urls.forEach(function (u, i) {
+    if (u && !/^data:/.test(u)) { needIdx.push(i); needUrls.push(u); }
+  });
+  var out = urls.slice();
+  if (!needUrls.length) return Promise.resolve(out);
+  return api('imageDataBatch', {}, 'POST', { pw: state.viewPw, urls: needUrls }).then(function (res) {
+    if (res && res.ok && Array.isArray(res.results)) {
+      res.results.forEach(function (r, j) {
+        var i = needIdx[j];
+        out[i] = (r && r.ok && r.dataUrl) ? r.dataUrl : urls[i];
+      });
+    }
+    return out;
+  }).catch(function () { return out; });
 }
 
 function inlineImagesForCapture_(root) {
-  var imgs = root.querySelectorAll('img');
-  var tasks = [];
-  imgs.forEach(function (img) {
-    var src = img.getAttribute('src');
-    if (!src) return;
-    tasks.push(toDataUrlViaProxy_(src).then(function (dataUrl) {
-      if (!dataUrl || dataUrl === src) return;
-      return new Promise(function (resolve) {
+  var imgs = Array.prototype.slice.call(root.querySelectorAll('img'));
+  var srcs = imgs.map(function (img) { return img.getAttribute('src') || ''; });
+  return fetchImageDataUrlsBatch_(srcs).then(function (dataUrls) {
+    var tasks = [];
+    imgs.forEach(function (img, i) {
+      var src = srcs[i];
+      var dataUrl = dataUrls[i];
+      if (!src || !dataUrl || dataUrl === src) return;
+      tasks.push(new Promise(function (resolve) {
         img.onload = function () { resolve(); };
         img.onerror = function () { resolve(); };
         img.src = dataUrl;
-      });
-    }));
+      }));
+    });
+    return Promise.all(tasks);
   });
-  return Promise.all(tasks);
 }
 
 function downloadDeckImage(mode) {
@@ -930,7 +953,9 @@ function downloadDeckImage(mode) {
   inlineImagesForCapture_(deckEl).then(function () {
     return html2canvas(deckEl, {
       backgroundColor: bg,
-      scale: Math.min(2, window.devicePixelRatio || 1.5),
+      // 확대해서 볼 때 깨져 보인다는 피드백이 있어서 배율을 3배로 올렸다.
+      // (캡처 폭이 480px이라 3배로 찍어도 이미지 크기는 카톡 공유에 무리 없는 수준)
+      scale: 3,
       useCORS: true
     });
   }).then(function (canvas) {
