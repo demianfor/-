@@ -994,17 +994,58 @@ function inlineImagesForCapture_(root) {
   });
 }
 
-// html2canvas는 CSS의 aspect-ratio나 flex로 계산되는 이미지 높이를 브라우저처럼 정확히
-// 다시 계산해주지 못한다(알려진 한계). 그래서 카드/배치 칸의 이미지가 실제 화면과 달리
-// 통째로 찌그러지거나(object-fit:cover가 제대로 안 먹음), 이름표와의 위치가 어긋나 보인다.
-// 캡처 직전에, 실제 화면(오프스크린 사본)에서 브라우저가 계산해 놓은 픽셀 크기를 그대로
-// img에 굳혀(inline width/height) 넘기면 html2canvas가 다시 계산할 필요 없이 그대로 그린다.
+// html2canvas는 CSS의 aspect-ratio/flex로 계산되는 이미지 높이도, object-fit:cover로
+// 잘라내는 것도 브라우저처럼 정확히 다시 그려주지 못한다(둘 다 알려진 한계). 그래서
+// 실제 화면에서는 딱 맞게 잘려 보이던 카드/배치 이미지가, 캡처할 땐 박스 크기 계산이
+// 틀어지거나 잘림 없이 원본이 눌려서 나온다.
+// 그래서 캡처 직전에, "지금 화면에 보이는 그대로"를 캔버스로 직접 미리 잘라(object-fit:cover +
+// object-position을 그대로 재현) 이미지 자체를 그 결과물로 바꿔치기하고, 박스 크기도 실제
+// 계산된 픽셀 값으로 못박아버린다. 그러면 html2canvas는 이미 잘려있는 이미지를 정해진
+// 크기의 박스에 그대로 채우기만 하면 되니까 더 이상 다시 계산할 게 없어서 어긋날 일이 없다.
+function objectPositionFrac_(img) {
+  var raw = (getComputedStyle(img).objectPosition || '50% 50%').split(' ');
+  function frac(v) {
+    v = (v || '50%').trim();
+    return v.indexOf('%') !== -1 ? parseFloat(v) / 100 : 0.5;
+  }
+  return { x: frac(raw[0]), y: frac(raw[1]) };
+}
+
 function freezeCaptureSizes_(root) {
-  var selectors = [
-    '.card-char img', '.card-skill img', '.pet-card img',
-    '.position-col img', '.gear-cell img', '.step img'
-  ];
-  Array.prototype.slice.call(root.querySelectorAll(selectors.join(','))).forEach(function (img) {
+  // object-fit:cover로 화면 크기에 맞춰 잘려 보이는 것들(카드/배치/펫/스텝) — 잘라낸 결과를
+  // 그대로 픽셀로 구워서(bake) 바꿔치기한다.
+  var coverSelectors = ['.card-char img', '.card-skill img', '.pet-card img', '.position-col img', '.step img'];
+  Array.prototype.slice.call(root.querySelectorAll(coverSelectors.join(','))).forEach(function (img) {
+    var rect = img.getBoundingClientRect();
+    var targetW = Math.round(rect.width);
+    var targetH = Math.round(rect.height);
+    if (!targetW || !targetH || !img.naturalWidth || !img.naturalHeight) return;
+    try {
+      var natW = img.naturalWidth, natH = img.naturalHeight;
+      var scale = Math.max(targetW / natW, targetH / natH);
+      var srcW = targetW / scale;
+      var srcH = targetH / scale;
+      var pos = objectPositionFrac_(img);
+      var srcX = Math.max(0, Math.min(natW - srcW, (natW - srcW) * pos.x));
+      var srcY = Math.max(0, Math.min(natH - srcH, (natH - srcH) * pos.y));
+      var outScale = 3; // 저장 시 html2canvas scale:3과 맞춰서 확대해도 흐릿하지 않게
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(targetW * outScale));
+      canvas.height = Math.max(1, Math.round(targetH * outScale));
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);
+      img.src = canvas.toDataURL('image/png');
+      img.style.objectFit = 'fill';
+    } catch (e) {
+      // 캔버스 변환이 막히면(예: 원본이 데이터URL로 못 바뀐 경우) 그냥 원본 그대로 둔다.
+    }
+    img.style.width = targetW + 'px';
+    img.style.height = targetH + 'px';
+  });
+
+  // object-fit:contain(장비 아이콘)은 잘리는 게 아니라 비율 유지한 채 안쪽에 들어가므로,
+  // 박스 크기만 못박아주면 충분하다.
+  Array.prototype.slice.call(root.querySelectorAll('.gear-cell img')).forEach(function (img) {
     var rect = img.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {
       img.style.width = rect.width + 'px';
