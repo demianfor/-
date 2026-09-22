@@ -1152,7 +1152,10 @@ function renderDeckHtml(deck, editable) {
     var cardName = (c.card && c.card.name) || c.name;
     var cardImg = (c.card && c.card.img) || '';
     var cardOverlay = editable ? '<select class="tile-overlay" data-edit-card="' + idx + '">' + optionsHtml_(state.cards, cardName, stripCardWord_) + '</select>' : '';
-    var cardTile = '<div class="card-skill' + (editable ? ' editable' : '') + '"><img src="' + esc(cardImg) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)"><div class="name">' + esc(stripCardWord_(cardName)) + '</div>' + cardOverlay + '</div>';
+    // 카드는 캐릭터 세트 손잡이와 별개로, 카드 칸 자체에 손잡이를 하나 더 둬서
+    // "카드만" 단독으로 다른 자리 카드와 맞바꿀 수 있게 한다(캐릭터/장비는 그대로 두고 카드만 이동).
+    var cardDragHandle = editable ? '<button type="button" class="drag-handle" data-drag-handle="card" title="드래그해서 이 카드만 다른 자리 카드와 바꾸기">⠿</button>' : '';
+    var cardTile = '<div class="card-skill' + (editable ? ' editable' : '') + '"' + (editable ? ' data-drag-card="' + idx + '"' : '') + '><img src="' + esc(cardImg) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)"><div class="name">' + esc(stripCardWord_(cardName)) + '</div>' + cardOverlay + cardDragHandle + '</div>';
 
     return '<div class="char-set"' + (editable ? ' data-drag-set="' + idx + '"' : '') + '>' + charTile + gearGrid + cardTile + '</div>';
   }).join('');
@@ -1484,6 +1487,15 @@ function wireAdminInline_(container, deck) {
     var tmpCol = a.col, tmpSlot = a.slot;
     a.col = b.col; a.slot = b.slot;
     b.col = tmpCol; b.slot = tmpSlot;
+    refresh();
+  });
+  // 카드만 단독으로 자리 바꾸기: 캐릭터/장비(col·slot·gear)는 그대로 두고 card만 서로 맞바꾼다.
+  wireDragReorder_(container, '[data-drag-handle="card"]', 'data-drag-card', function (srcKey, tgtKey) {
+    var a = deck.characters[Number(srcKey)], b = deck.characters[Number(tgtKey)];
+    if (!a || !b) return;
+    var tmp = a.card;
+    a.card = b.card;
+    b.card = tmp;
     refresh();
   });
   wireDragReorder_(container, '[data-drag-handle="pet"]', 'data-drag-pet', function (srcKey, tgtKey) {
