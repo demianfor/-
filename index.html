@@ -1014,11 +1014,19 @@ function objectPositionFrac_(img) {
 function freezeCaptureSizes_(root) {
   // object-fit:cover로 화면 크기에 맞춰 잘려 보이는 것들(카드/배치/펫/스텝) — 잘라낸 결과를
   // 그대로 픽셀로 구워서(bake) 바꿔치기한다.
+  // 주의: img.src를 새로 바꾼 뒤에도 브라우저가 그 새 이미지를 실제로 디코드해서 화면에
+  // 반영하기까지는 약간의 시간이 걸린다(동기적으로 끝나지 않음). 이걸 기다리지 않고 바로
+  // html2canvas를 돌리면 "아직 안 바뀐(원본) 이미지"가 object-fit:fill로 눌려서 찍혀버려서
+  // 오히려 더 찌그러져 보이는 문제가 있었다 — 그래서 각 이미지의 onload를 Promise로 모아서
+  // 전부 끝난 뒤에만 캡처를 시작하도록 고쳤다.
+  var tasks = [];
   var coverSelectors = ['.card-char img', '.card-skill img', '.pet-card img', '.position-col img', '.step img'];
   Array.prototype.slice.call(root.querySelectorAll(coverSelectors.join(','))).forEach(function (img) {
     var rect = img.getBoundingClientRect();
     var targetW = Math.round(rect.width);
     var targetH = Math.round(rect.height);
+    if (targetW > 0) img.style.width = targetW + 'px';
+    if (targetH > 0) img.style.height = targetH + 'px';
     if (!targetW || !targetH || !img.naturalWidth || !img.naturalHeight) return;
     try {
       var natW = img.naturalWidth, natH = img.naturalHeight;
@@ -1034,17 +1042,20 @@ function freezeCaptureSizes_(root) {
       canvas.height = Math.max(1, Math.round(targetH * outScale));
       var ctx = canvas.getContext('2d');
       ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);
-      img.src = canvas.toDataURL('image/png');
+      var dataUrl = canvas.toDataURL('image/png');
       img.style.objectFit = 'fill';
+      tasks.push(new Promise(function (resolve) {
+        img.onload = function () { resolve(); };
+        img.onerror = function () { resolve(); };
+        img.src = dataUrl;
+      }));
     } catch (e) {
       // 캔버스 변환이 막히면(예: 원본이 데이터URL로 못 바뀐 경우) 그냥 원본 그대로 둔다.
     }
-    img.style.width = targetW + 'px';
-    img.style.height = targetH + 'px';
   });
 
   // object-fit:contain(장비 아이콘)은 잘리는 게 아니라 비율 유지한 채 안쪽에 들어가므로,
-  // 박스 크기만 못박아주면 충분하다.
+  // 박스 크기만 못박아주면 충분하다(이미지 자체를 바꾸지 않으니 로딩을 기다릴 필요 없음).
   Array.prototype.slice.call(root.querySelectorAll('.gear-cell img')).forEach(function (img) {
     var rect = img.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {
@@ -1052,6 +1063,8 @@ function freezeCaptureSizes_(root) {
       img.style.height = rect.height + 'px';
     }
   });
+
+  return Promise.all(tasks);
 }
 
 function downloadDeckImage(mode) {
@@ -1085,7 +1098,8 @@ function downloadDeckImage(mode) {
 
   var bg = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim() || '#171c27';
   inlineImagesForCapture_(deckEl).then(function () {
-    freezeCaptureSizes_(deckEl);
+    return freezeCaptureSizes_(deckEl);
+  }).then(function () {
     return html2canvas(deckEl, {
       backgroundColor: bg,
       // 확대해서 볼 때 깨져 보인다는 피드백이 있어서 배율을 3배로 올렸다.
