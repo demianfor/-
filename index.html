@@ -464,13 +464,26 @@ var state = {
 };
 
 /* ---------- 유틸 ---------- */
+// Apps Script 웹앱은 가끔(특히 한동안 안 쓰다가 처음 요청할 때) 실제로는 멀쩡한데도
+// 응답 콜백을 한 번씩 놓쳐서 일시적으로 실패하는 경우가 있다(사용자가 "잠깐 실패했다가
+// 바로 다시 하니까 됐다"고 겪은 게 이 현상). 저장/추가처럼 다시 보내면 중복이 생길 수 있는
+// POST 요청은 그대로 두고, 조회(GET)만 실패 시 잠깐 기다렸다가 한 번 더 자동으로 시도한다.
+function fetchJsonWithRetry_(url, triesLeft) {
+  if (triesLeft === undefined) triesLeft = 1;
+  return fetch(url).then(function (r) { return r.json(); }).catch(function (err) {
+    if (triesLeft <= 0) throw err;
+    return new Promise(function (resolve) { setTimeout(resolve, 1200); })
+      .then(function () { return fetchJsonWithRetry_(url, triesLeft - 1); });
+  });
+}
+
 function api(action, params, method, body) {
   params = params || {};
   method = method || 'GET';
   var url = API_URL + '?action=' + encodeURIComponent(action);
   Object.keys(params).forEach(function (k) { url += '&' + k + '=' + encodeURIComponent(params[k]); });
   if (method === 'GET') {
-    return fetch(url).then(function (r) { return r.json(); });
+    return fetchJsonWithRetry_(url);
   }
   return fetch(url, {
     method: 'POST',
