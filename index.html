@@ -516,6 +516,9 @@ function tryLogin() {
       document.getElementById('gate').style.display = 'none';
       state.decks = res.decks;
       renderDeckList();
+      // 사용자가 아직 덱을 고르기 전인 지금부터 미리 캐릭터/펫 라이브러리를 받아둔다.
+      // 이렇게 해두면 실제로 첫 덱을 클릭했을 때는 이미 다 받아져 있어서 덱 내용(get)만 기다리면 된다.
+      loadLibraries();
       var savedAdmin = null;
       try { savedAdmin = localStorage.getItem('gn_admin_pw'); } catch (e) {}
       if (savedAdmin) tryAdminLogin(savedAdmin, true);
@@ -771,13 +774,19 @@ function selectDeck(id) {
     '<div class="deck"><div class="loading-msg"><span class="spinner"></span>덱을 불러오는 중입니다...</div></div>';
   document.getElementById('admin-bar').style.display = 'none';
   document.getElementById('admin-hint').style.display = 'none';
-  api('get', { pw: state.viewPw, id: id }).then(function (res) {
+  // 덱 내용(get)과 캐릭터/펫 라이브러리(bootstrap)는 서로 의존하지 않으므로 순서대로 기다리지 않고
+  // 동시에 요청해서 더 느린 쪽 하나의 시간만 기다리면 되게 한다(전에는 get이 끝나야 라이브러리 요청을 시작했음).
+  // 캐릭터/펫 라이브러리는 관리자 모드에서만이 아니라 일반 보기에서도 필요하다 —
+  // 덱에 저장된 이미지가 오래된(만료된) 스냅샷일 때 최신 URL로 대체해서 보여주기 때문.
+  // loadLibraries()는 이미 불러온 경우 바로 반환하므로 매번 다시 불러오지 않는다.
+  Promise.all([
+    api('get', { pw: state.viewPw, id: id }),
+    loadLibraries()
+  ]).then(function (results) {
+    var res = results[0];
     if (!res.ok) { document.getElementById('viewer').innerHTML = '<div class="deck"><div class="empty">불러오기 실패</div></div>'; return; }
     state.currentDeck = res.deck;
-    // 캐릭터/펫 라이브러리는 관리자 모드에서만이 아니라 일반 보기에서도 필요하다 —
-    // 덱에 저장된 이미지가 오래된(만료된) 스냅샷일 때 최신 URL로 대체해서 보여주기 때문.
-    // loadLibraries()는 이미 불러온 경우 바로 반환하므로 매번 다시 불러오지 않는다.
-    loadLibraries().then(renderCurrentDeck);
+    renderCurrentDeck();
   }).catch(function () {
     document.getElementById('viewer').innerHTML = '<div class="deck"><div class="empty">불러오기 실패</div></div>';
   });
@@ -1214,13 +1223,18 @@ function newDeck() {
 
 function loadLibraries() {
   if (state.characters.length) return Promise.resolve();
-  return Promise.all([
-    api('characters', { pw: state.viewPw }).then(function (r) { if (r.ok) state.characters = r.characters; }),
-    api('pets', { pw: state.viewPw }).then(function (r) { if (r.ok) state.pets = r.pets; }),
-    api('cards', { pw: state.viewPw }).then(function (r) { if (r.ok) state.cards = r.cards; }),
-    api('icons', { pw: state.viewPw }).then(function (r) { if (r.ok) state.icons = r.icons; }),
-    api('equip', { pw: state.viewPw }).then(function (r) { if (r.ok) state.equip = r.equip; })
-  ]);
+  // 예전에는 characters/pets/cards/icons/equip을 5개의 별도 요청으로 나눠서 불러왔는데,
+  // Apps Script 웹앱은 같은 스크립트로 오는 요청을 동시에 처리하지 못하고 줄을 서서 처리하기 때문에
+  // 5개를 "동시에" 보내도 실제로는 순서대로 처리되어 체감 속도가 5배 가까이 느려지는 문제가 있었다.
+  // 서버에 새로 만든 bootstrap 액션 하나로 5개를 한 번에 받아온다(요청 1번으로 끝).
+  return api('bootstrap', { pw: state.viewPw }).then(function (r) {
+    if (!r.ok) return;
+    state.characters = r.characters || [];
+    state.pets = r.pets || [];
+    state.cards = r.cards || [];
+    state.icons = r.icons || [];
+    state.equip = r.equip || { weapon: [], armor: [], item: [], rune: [] };
+  });
 }
 
 function findChar_(name) { return state.characters.find(function (c) { return !c.divider && c.name === name; }); }
