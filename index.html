@@ -519,7 +519,7 @@ function tryLogin() {
       renderDeckList();
       // 사용자가 아직 덱을 고르기 전인 지금부터 미리 캐릭터/펫 라이브러리를 받아둔다.
       // 이렇게 해두면 실제로 첫 덱을 클릭했을 때는 이미 다 받아져 있어서 덱 내용(get)만 기다리면 된다.
-      loadLibraries();
+      loadLibraries().catch(function () {}); // 미리 불러오기 실패해도(통신 오류 등) 로그인 자체는 계속 진행
       var savedAdmin = null;
       try { savedAdmin = localStorage.getItem('gn_admin_pw'); } catch (e) {}
       if (savedAdmin) tryAdminLogin(savedAdmin, true);
@@ -782,7 +782,10 @@ function selectDeck(id) {
   // loadLibraries()는 이미 불러온 경우 바로 반환하므로 매번 다시 불러오지 않는다.
   Promise.all([
     api('get', { pw: state.viewPw, id: id }),
-    loadLibraries()
+    // 라이브러리 쪽에서 통신 오류가 나도 "불러오기 실패"로 덱 전체를 못 보여주면 안 되니까
+    // (덱 자체는 정상적으로 왔는데도 실패로 표시되는 문제가 있었음), 여기서 실패를 조용히 삼킨다.
+    // 그래도 캐릭터/펫 이미지가 최신이 아닐 수 있는 정도지, 덱 자체는 정상적으로 보여줄 수 있다.
+    loadLibraries().catch(function () {})
   ]).then(function (results) {
     var res = results[0];
     if (!res.ok) { document.getElementById('viewer').innerHTML = '<div class="deck"><div class="empty">불러오기 실패</div></div>'; return; }
