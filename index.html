@@ -883,6 +883,12 @@ function renderCurrentDeck() {
 // 예전엔 이미지 하나마다 서버에 따로 요청(imageData)을 보내서, 이미지 개수만큼 exec/echo 왕복이
 // 발생했다. 덱 불러올 때 bootstrap으로 묶었던 것처럼, 여기서도 이미지 URL을 한 번에 모아서
 // 서버 한 번의 실행(imageDataBatch, UrlFetchApp.fetchAll)으로 다 받아오게 바꿔서 훨씬 빨라졌다.
+//
+// 다만 모바일 환경(특히 데이터 통신, 약한 와이파이)에서는 이 한 번의 요청 자체가 통째로
+// 실패/타임아웃될 수 있는데, 그러면 예전과 달리 "이미지가 하나도 없이 틀만 나오는" 캡처가
+// 나온다(요청 하나가 죽으면 이미지 전체가 다 같이 죽는 구조라서). 그래서
+// 1) 배치 요청을 한 번 더 재시도하고, 2) 그래도 실패하면 예전 방식(이미지 하나씩 개별 요청)으로
+// 다시 시도해서 최소한 되는 이미지라도 채워지게 한다.
 function fetchImageDataUrlsBatch_(urls) {
   var needIdx = [];
   var needUrls = [];
@@ -891,15 +897,31 @@ function fetchImageDataUrlsBatch_(urls) {
   });
   var out = urls.slice();
   if (!needUrls.length) return Promise.resolve(out);
-  return api('imageDataBatch', {}, 'POST', { pw: state.viewPw, urls: needUrls }).then(function (res) {
-    if (res && res.ok && Array.isArray(res.results)) {
-      res.results.forEach(function (r, j) {
-        var i = needIdx[j];
-        out[i] = (r && r.ok && r.dataUrl) ? r.dataUrl : urls[i];
-      });
-    }
-    return out;
-  }).catch(function () { return out; });
+
+  function applyResults(results) {
+    results.forEach(function (r, j) {
+      var i = needIdx[j];
+      out[i] = (r && r.ok && r.dataUrl) ? r.dataUrl : urls[i];
+    });
+  }
+  function batchOnce() {
+    return api('imageDataBatch', {}, 'POST', { pw: state.viewPw, urls: needUrls }).then(function (res) {
+      if (!res || !res.ok || !Array.isArray(res.results)) throw new Error('batch_not_ok');
+      applyResults(res.results);
+    });
+  }
+  function perImageFallback() {
+    return Promise.all(needUrls.map(function (u, j) {
+      return api('imageData', { pw: state.viewPw, url: u }).then(function (r) {
+        out[needIdx[j]] = (r && r.ok && r.dataUrl) ? r.dataUrl : urls[needIdx[j]];
+      }).catch(function () { /* 이 이미지 하나만 원본 URL로 남겨두고 계속 진행 */ });
+    }));
+  }
+
+  return batchOnce()
+    .catch(batchOnce) // 1차 재시도
+    .catch(perImageFallback) // 그래도 안 되면 개별 요청으로 최후 시도
+    .then(function () { return out; });
 }
 
 function inlineImagesForCapture_(root) {
