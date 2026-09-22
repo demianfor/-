@@ -661,13 +661,16 @@ function decksInGroupSorted_(cat, group) {
 }
 // 화면에 보여줄 덱 제목. 그룹이 있는 덱(레이드/아발론/대난투로 정리된 덱)은
 // "그룹 표시명 + 순번"으로 자동으로 만들고, 그룹이 없는 예전 자유 형식 덱은 직접 적어둔 제목을 그대로 쓴다.
+// "2(생존)"처럼 순번 뒤에 태그를 괄호로 붙여서 보여준다. 태그가 없으면 그냥 순번만.
+function tagSuffix_(tag) { return tag ? '(' + tag + ')' : ''; }
+
 function deckPositionLabel_(deck) {
   var cat = deckCategory_(deck), grp = deckGroup_(deck);
   if (!grp) return deck.title || '덱';
   var list = decksInGroupSorted_(cat, grp);
   var idx = list.findIndex(function (d) { return d.id === deck.id; });
   var pos = idx === -1 ? 1 : idx + 1;
-  return groupLabel_(cat, grp) + ' ' + pos;
+  return groupLabel_(cat, grp) + ' ' + pos + tagSuffix_(deck.noteTag);
 }
 
 /* ---------- 3단 드롭다운 메뉴 (카테고리 → 그룹 → 번호) ---------- */
@@ -731,7 +734,7 @@ function renderDeckSelect_() {
   el.disabled = false;
   var options = '<option value="" disabled' + (state.currentId ? '' : ' selected') + '>선택하세요</option>' +
     decksToShow.map(function (d, i) {
-      return '<option value="' + d.id + '"' + (d.id === state.currentId ? ' selected' : '') + '>' + (i + 1) + '</option>';
+      return '<option value="' + d.id + '"' + (d.id === state.currentId ? ' selected' : '') + '>' + (i + 1) + esc(tagSuffix_(d.tag)) + '</option>';
     }).join('');
   if (state.isAdmin) {
     options += '<option value="__new__">+ 새 덱 만들기</option>';
@@ -1519,7 +1522,17 @@ function wireAdminInline_(container, deck) {
     });
   });
   container.querySelectorAll('[data-field]').forEach(function (el) {
-    el.oninput = function () { deck[el.dataset.field] = el.textContent.trim(); };
+    el.oninput = function () {
+      deck[el.dataset.field] = el.textContent.trim();
+      // 태그를 입력하는 동안 제목 옆 "2(생존)" 표시도 바로 반영한다(그룹이 있는 덱만 —
+      // 제목이 자동 생성이라 여기서 다시 계산해줘야 함. 전체 재렌더링은 커서 위치가
+      // 튀니까 안 하고, 제목 글자만 직접 바꿔치기한다).
+      if (el.dataset.field === 'noteTag' && deckGroup_(deck)) {
+        deck.title = deckPositionLabel_(deck);
+        var h1 = container.querySelector('.title-text h1');
+        if (h1) h1.textContent = deck.title;
+      }
+    };
   });
   container.querySelectorAll('[data-step-field]').forEach(function (el) {
     el.oninput = function () {
@@ -1680,8 +1693,8 @@ function saveDeck_ui(d) {
       msg.className = 'msg ok';
       state.currentDeck = d;
       var found = state.decks.find(function (x) { return x.id === d.id; });
-      if (found) { found.title = d.title; found.category = d.category; found.group = d.group || ''; }
-      else state.decks.push({ id: d.id, title: d.title, category: d.category, group: d.group || '', order: d.order || '' });
+      if (found) { found.title = d.title; found.category = d.category; found.group = d.group || ''; found.tag = d.noteTag || ''; }
+      else state.decks.push({ id: d.id, title: d.title, category: d.category, group: d.group || '', order: d.order || '', tag: d.noteTag || '' });
       renderDeckList();
       // order는 저장 전용 칼럼이라 일반 저장(action:'save')이 건드리지 않는다 — 새 덱을 처음 저장할 때
       // (order:1로 만들어둔 값)만 여기서 따로 한 번 반영해준다. 그 이후엔 "순서" 드롭다운으로 바꾼다.
