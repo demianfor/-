@@ -128,6 +128,25 @@
   }
   .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 
+  /* ---------- 목록 관리 모달 (주요/나머지 드래그 관리) ---------- */
+  .modal-box.wide { max-width: 920px; }
+  .lib-add-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .lib-add-row select { flex: 1 1 auto; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel2); color: var(--text); font-size: 13px; }
+  .lib-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+  .lib-col { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; min-height: 160px; }
+  .lib-col h4 { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+  .lib-col.drag-over { outline: 2px dashed var(--blue); outline-offset: -2px; }
+  .lib-chip-list { display: flex; flex-direction: column; gap: 6px; min-height: 40px; }
+  .lib-chip {
+    display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 5px 8px; cursor: grab; user-select: none;
+  }
+  .lib-chip.dragging { opacity: 0.35; }
+  .lib-chip img { width: 26px; height: 26px; border-radius: 6px; object-fit: cover; background: var(--panel2); flex: 0 0 auto; }
+  .lib-chip .lib-chip-name { flex: 1 1 auto; font-size: 12.5px; }
+  .lib-chip .lib-chip-remove { flex: 0 0 auto; width: 18px; height: 18px; line-height: 16px; padding: 0; border-radius: 50%; border: none; background: rgba(0,0,0,0.35); color: #fff; font-size: 12px; cursor: pointer; }
+  .lib-empty-hint { color: var(--muted); font-size: 12px; padding: 6px 2px; }
+
   /* ---------- 관리자: 그룹 안 덱 순서 지정 ---------- */
   .order-assign { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 12px; color: var(--muted); }
   .order-assign select {
@@ -406,6 +425,7 @@
     <button class="pill-btn active" data-theme-btn="dark" onclick="setTheme('dark')">다크</button>
     <button class="pill-btn" data-theme-btn="light" onclick="setTheme('light')">라이트</button>
     <button class="pill-btn" id="add-item-btn" style="display:none" onclick="openAddItemModal()">+ 새 항목 추가</button>
+    <button class="pill-btn" id="lib-manage-btn" style="display:none" onclick="openLibraryManageModal()">목록 관리</button>
     <button class="pill-btn" id="admin-btn" onclick="onAdminBtn()">관리자 모드</button>
   </div>
 </div>
@@ -456,6 +476,33 @@
     <div class="modal-actions">
       <button type="button" class="small-btn" onclick="closeAddItemModal()">취소</button>
       <button type="button" class="pill-btn active" id="add-item-submit-btn" onclick="submitAddItem()">추가</button>
+    </div>
+  </div>
+</div>
+
+<div id="lib-manage-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box wide">
+    <h3>목록 관리</h3>
+    <label class="modal-field">종류
+      <select id="lib-manage-category" onchange="loadLibraryCategory_(this.value)">
+        <option value="character">캐릭터 (주요/나머지)</option>
+        <option value="card">카드 (주요/나머지)</option>
+        <option value="pet">펫 (주요/나머지)</option>
+        <option value="weapon">장비 - 무기 (직업별)</option>
+        <option value="armor">장비 - 갑옷 (직업별)</option>
+        <option value="item">장비 - 장신구 (직업별)</option>
+        <option value="rune">장비 - 룬 (직업별)</option>
+      </select>
+    </label>
+    <div class="lib-add-row">
+      <select id="lib-add-select"><option value="">추가할 항목 선택...</option></select>
+      <button type="button" class="small-btn" onclick="addLibraryEntry_()">추가</button>
+    </div>
+    <div class="lib-cols" id="lib-cols-container"></div>
+    <div id="lib-manage-msg" class="msg"></div>
+    <div class="modal-actions">
+      <button type="button" class="small-btn" onclick="closeLibraryManageModal()">닫기</button>
+      <button type="button" class="pill-btn active" id="lib-manage-save-btn" onclick="saveLibraryList_()">저장</button>
     </div>
   </div>
 </div>
@@ -575,6 +622,7 @@ function onAdminBtn() {
     document.getElementById('admin-btn').textContent = '관리자 모드';
     document.getElementById('admin-btn').classList.remove('admin-on');
     document.getElementById('add-item-btn').style.display = 'none';
+    document.getElementById('lib-manage-btn').style.display = 'none';
     renderCurrentDeck();
     return;
   }
@@ -595,6 +643,7 @@ function tryAdminLogin(pw, silent) {
       document.getElementById('admin-btn').textContent = '관리자 모드 ON';
       document.getElementById('admin-btn').classList.add('admin-on');
       document.getElementById('add-item-btn').style.display = 'inline-block';
+      document.getElementById('lib-manage-btn').style.display = 'inline-block';
       renderDeckList();
       loadLibraries().then(renderCurrentDeck);
     } else {
@@ -1776,6 +1825,229 @@ function submitAddItem() {
   }).catch(function () {
     submitBtn.disabled = false;
     msg.textContent = '업로드 중 오류가 발생했습니다.';
+    msg.className = 'msg err';
+  });
+}
+
+/* =========================================================
+   목록 관리 — 캐릭터/카드/펫/장비 각각의 "주요목록_*" 시트를 웹앱에서 직접 편집.
+   드래그로 칸 사이를 옮기고, 추가/삭제도 여기서 바로 하고, 저장하면 서버의 해당
+   시트를 통째로 다시 써준다(setDropdownList_). 시트를 직접 열 필요가 없어진다.
+   캐릭터/카드/펫은 "주요/나머지" 2칸, 장비 4종은 "기사/법사/힐러/사수" 직업별 칸으로 나뉜다
+   (장비는 딱히 주요/나머지 구분이 의미가 없고, 직업마다 쓸 수 있는 장비가 달라서 직업별이 더 쓸모있다).
+========================================================= */
+var LIB_CATEGORY_CONFIG_ = {
+  character: { buckets: ['주요', '나머지'], mode: 'position' },
+  card: { buckets: ['주요', '나머지'], mode: 'position' },
+  pet: { buckets: ['주요', '나머지'], mode: 'position' },
+  weapon: { buckets: ['기사', '법사', '힐러', '사수'], mode: 'label' },
+  armor: { buckets: ['기사', '법사', '힐러', '사수'], mode: 'label' },
+  item: { buckets: ['기사', '법사', '힐러', '사수'], mode: 'label' },
+  rune: { buckets: ['기사', '법사', '힐러', '사수'], mode: 'label' }
+};
+var LIB_UNSORTED_BUCKET_ = '미분류'; // 'label' 모드에서 아직 직업이 안 정해진(구분줄 라벨이 안 맞는) 항목이 모이는 칸
+
+// entries(서버가 보내준 원시 구조)를 화면에 그릴 "칸별 이름 목록"으로 바꾼다.
+// mode: 'position' - 캐릭터/카드/펫처럼, 첫 구간은 buckets[0](주요)로, 그 뒤 구간은 전부
+//   buckets[1](나머지)로 합친다 (구분줄에 어떤 글자가 적혀 있었는지는 안 보고 순서로만 판단 —
+//   예전에 "주요 캐릭"/"나머지 캐릭"처럼 다른 문구를 써뒀어도 그대로 인식되게 하기 위함).
+// mode: 'label' - 장비처럼, 구분줄 라벨 글자가 buckets 중 하나와 정확히 같을 때만 그 칸으로 넣고,
+//   구분줄이 아예 없거나(예전 방식 그대로 둔 경우) 모르는 라벨이면 "미분류" 칸에 넣는다.
+function bucketizeLibEntries_(entries, config) {
+  var buckets = {};
+  config.buckets.forEach(function (b) { buckets[b] = []; });
+
+  if (config.mode === 'label') {
+    buckets[LIB_UNSORTED_BUCKET_] = [];
+    var curLabel = LIB_UNSORTED_BUCKET_;
+    (entries || []).forEach(function (e) {
+      if (e.divider) { curLabel = config.buckets.indexOf(e.label) !== -1 ? e.label : LIB_UNSORTED_BUCKET_; return; }
+      buckets[curLabel].push(e.name);
+    });
+    return buckets;
+  }
+
+  // position 모드
+  var current = config.buckets[0];
+  var sawDivider = false;
+  (entries || []).forEach(function (e) {
+    if (e.divider) {
+      current = sawDivider ? config.buckets[config.buckets.length - 1] : (config.buckets[1] || config.buckets[0]);
+      sawDivider = true;
+      return;
+    }
+    buckets[current].push(e.name);
+  });
+  return buckets;
+}
+
+function libBucketNames_() {
+  var names = state.libManage.config.buckets.slice();
+  if (state.libManage.config.mode === 'label') names.push(LIB_UNSORTED_BUCKET_);
+  return names;
+}
+
+function openLibraryManageModal() {
+  document.getElementById('lib-manage-modal').style.display = 'flex';
+  var cat = document.getElementById('lib-manage-category').value || 'character';
+  loadLibraryCategory_(cat);
+}
+
+function closeLibraryManageModal() {
+  document.getElementById('lib-manage-modal').style.display = 'none';
+}
+
+function loadLibraryCategory_(category) {
+  var msg = document.getElementById('lib-manage-msg');
+  msg.textContent = '불러오는 중...';
+  msg.className = 'msg';
+  document.getElementById('lib-cols-container').innerHTML = '';
+  var config = LIB_CATEGORY_CONFIG_[category];
+  api('libraryManage', { pw: state.viewPw, category: category }).then(function (res) {
+    if (!res.ok) { msg.textContent = '불러오기 실패: ' + (res.error || ''); msg.className = 'msg err'; return; }
+    var itemsByName = {};
+    (res.items || []).forEach(function (it) { itemsByName[it.name] = it; });
+    state.libManage = {
+      category: category,
+      config: config,
+      items: res.items || [],
+      itemsByName: itemsByName,
+      buckets: bucketizeLibEntries_(res.entries || [], config)
+    };
+    msg.textContent = '';
+    msg.className = 'msg';
+    renderLibLists_();
+  }).catch(function () {
+    msg.textContent = '불러오기 중 오류가 발생했습니다.';
+    msg.className = 'msg err';
+  });
+}
+
+function renderLibLists_() {
+  var container = document.getElementById('lib-cols-container');
+  var names = libBucketNames_();
+  container.innerHTML = names.map(function (b) {
+    return '<div class="lib-col" data-lib-bucket="' + esc(b) + '"><h4>' + esc(b) + '</h4>' +
+      '<div class="lib-chip-list" id="lib-col-' + esc(b) + '"></div></div>';
+  }).join('');
+  names.forEach(renderLibBucket_);
+  wireLibDrag_();
+  renderLibAddSelect_();
+}
+
+function renderLibBucket_(bucket) {
+  var container = document.getElementById('lib-col-' + bucket);
+  var names = state.libManage.buckets[bucket] || [];
+  if (!names.length) {
+    container.innerHTML = '<div class="lib-empty-hint">(비어있음 — 여기로 항목을 드래그)</div>';
+    return;
+  }
+  container.innerHTML = names.map(function (name) {
+    var item = state.libManage.itemsByName[name];
+    var img = item ? item.image : '';
+    return '<div class="lib-chip" draggable="true" data-lib-name="' + esc(name) + '">' +
+      (img ? '<img src="' + esc(img) + '" referrerpolicy="no-referrer" onerror="this.remove()">' : '') +
+      '<span class="lib-chip-name">' + esc(name) + '</span>' +
+      '<button type="button" class="lib-chip-remove" data-lib-remove="' + esc(name) + '" title="목록에서 제거">×</button>' +
+      '</div>';
+  }).join('');
+}
+
+function wireLibDrag_() {
+  document.querySelectorAll('.lib-chip').forEach(function (chip) {
+    chip.ondragstart = function (e) {
+      e.dataTransfer.setData('text/plain', chip.dataset.libName);
+      chip.classList.add('dragging');
+    };
+    chip.ondragend = function () { chip.classList.remove('dragging'); };
+  });
+  document.querySelectorAll('.lib-col').forEach(function (col) {
+    col.ondragover = function (e) { e.preventDefault(); col.classList.add('drag-over'); };
+    col.ondragleave = function () { col.classList.remove('drag-over'); };
+    col.ondrop = function (e) {
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      var name = e.dataTransfer.getData('text/plain');
+      if (name) moveLibEntry_(name, col.dataset.libBucket);
+    };
+  });
+  document.querySelectorAll('[data-lib-remove]').forEach(function (btn) {
+    btn.onclick = function () { removeLibEntry_(btn.dataset.libRemove); };
+  });
+}
+
+function moveLibEntry_(name, targetBucket) {
+  var buckets = state.libManage.buckets;
+  libBucketNames_().forEach(function (b) {
+    var idx = buckets[b].indexOf(name);
+    if (idx !== -1) buckets[b].splice(idx, 1);
+  });
+  buckets[targetBucket].push(name);
+  renderLibLists_();
+}
+
+function removeLibEntry_(name) {
+  var buckets = state.libManage.buckets;
+  libBucketNames_().forEach(function (b) {
+    var idx = buckets[b].indexOf(name);
+    if (idx !== -1) buckets[b].splice(idx, 1);
+  });
+  renderLibLists_();
+}
+
+function renderLibAddSelect_() {
+  var sel = document.getElementById('lib-add-select');
+  var used = {};
+  libBucketNames_().forEach(function (b) { state.libManage.buckets[b].forEach(function (n) { used[n] = true; }); });
+  var candidates = (state.libManage.items || []).filter(function (it) { return !used[it.name]; });
+  sel.innerHTML = '<option value="">추가할 항목 선택... (' + candidates.length + '개 남음)</option>' +
+    candidates.map(function (it) { return '<option value="' + esc(it.name) + '">' + esc(it.name) + '</option>'; }).join('');
+}
+
+function addLibraryEntry_() {
+  var sel = document.getElementById('lib-add-select');
+  var name = sel.value;
+  if (!name) return;
+  // 새로 추가된 항목은 일단 마지막 칸(주요/나머지면 나머지, 직업별이면 미분류)에 넣고 드래그로 옮기게 한다.
+  var names = libBucketNames_();
+  state.libManage.buckets[names[names.length - 1]].push(name);
+  renderLibLists_();
+}
+
+function saveLibraryList_() {
+  if (!state.libManage || !state.libManage.category) return;
+  var msg = document.getElementById('lib-manage-msg');
+  var btn = document.getElementById('lib-manage-save-btn');
+  var entries = [];
+  libBucketNames_().forEach(function (b) {
+    entries.push({ divider: true, label: b });
+    state.libManage.buckets[b].forEach(function (n) { entries.push({ name: n }); });
+  });
+
+  msg.textContent = '저장 중...';
+  msg.className = 'msg';
+  btn.disabled = true;
+  api('saveDropdownList', {}, 'POST', { pw: state.adminPw, category: state.libManage.category, entries: entries }).then(function (res) {
+    btn.disabled = false;
+    if (res.ok) {
+      msg.textContent = '저장되었습니다! 잠시 후 드롭다운에 반영돼요.';
+      msg.className = 'msg ok';
+      // 캐시된 라이브러리를 비워서 다음에 다시 최신 상태로 불러오게 한다.
+      state.characters = [];
+      state.pets = [];
+      state.cards = [];
+      state.icons = [];
+      state.equip = { weapon: [], armor: [], item: [], rune: [] };
+      loadLibraries().then(function () {
+        if (state.currentDeck) renderCurrentDeck();
+      });
+    } else {
+      msg.textContent = '저장 실패: ' + (res.error || '');
+      msg.className = 'msg err';
+    }
+  }).catch(function () {
+    btn.disabled = false;
+    msg.textContent = '저장 중 오류가 발생했습니다.';
     msg.className = 'msg err';
   });
 }
