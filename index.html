@@ -835,14 +835,20 @@ function renderDeckSelect_() {
     decksToShow = decksInGroupSorted_(cat, ''); // 그룹 구분이 없는(예전) 덱들
   }
   el.disabled = false;
+  // 지금 만들고 있는 새 덱은 아직 저장 전이라 decksToShow(=state.decks) 안에 없다 —
+  // 목록엔 없지만 뭘 편집 중인지는 알 수 있게 드롭다운에 임시 항목을 하나 보여준다.
+  var isDraft = state.currentId && !decksToShow.some(function (d) { return d.id === state.currentId; });
   var options = '<option value="" disabled' + (state.currentId ? '' : ' selected') + '>선택하세요</option>' +
     decksToShow.map(function (d, i) {
       return '<option value="' + d.id + '"' + (d.id === state.currentId ? ' selected' : '') + '>' + (i + 1) + esc(tagSuffix_(d.tag)) + '</option>';
     }).join('');
+  if (isDraft) {
+    options += '<option value="' + esc(state.currentId) + '" selected>새 덱 (저장 전)</option>';
+  }
   if (state.isAdmin) {
     options += '<option value="__new__">+ 새 덱 만들기</option>';
   }
-  el.innerHTML = (decksToShow.length || state.isAdmin) ? options : '<option value="">등록된 덱이 없습니다</option>';
+  el.innerHTML = (decksToShow.length || state.isAdmin || isDraft) ? options : '<option value="">등록된 덱이 없습니다</option>';
 }
 
 function onDeckSelectChange_(id) {
@@ -1516,7 +1522,11 @@ function newDeck() {
   };
   state.currentId = id;
   state.currentDeck = blank;
-  state.decks.push({ id: id, title: '새 덱', category: state.category, group: state.group || '', order: 1 });
+  // 예전엔 여기서 state.decks에도 바로 추가해서 드롭다운 목록에 즉시 나타났는데, 그러면 "저장"을
+  // 누르지 않고 다른 덱으로 넘어가버릴 경우 목록에는 남아있지만 실제로는 서버에 없는(=저장 안 된)
+  // 덱이 생겨서, 다시 눌러도 불러오기가 안 되고 삭제 버튼도 뜰 방법이 없는 "유령 덱" 문제가 있었다.
+  // 그래서 이제는 실제로 "저장"을 눌러 서버에 반영될 때만 목록에 추가한다(saveDeck_ui 참고).
+  // 목록엔 아직 안 뜨지만, 지금 만들고 있는 새 덱이라는 걸 알 수 있게 드롭다운엔 임시 표시만 해준다.
   renderDeckList();
   document.getElementById('viewer').innerHTML =
     '<div class="deck"><div class="loading-msg"><span class="spinner"></span>불러오는 중입니다...</div></div>';
