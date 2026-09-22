@@ -128,12 +128,12 @@
   }
   .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 
-  /* ---------- 관리자: 덱 카테고리 지정 ---------- */
-  .cat-assign { display: flex; gap: 6px; margin: 0 0 10px; }
-  .cat-assign button {
-    padding: 5px 12px; border-radius: 8px; font-size: 12px; background: var(--panel2); border: 1px solid var(--border); color: var(--muted); cursor: pointer;
+  /* ---------- 관리자: 그룹 안 덱 순서 지정 ---------- */
+  .order-assign { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 12px; color: var(--muted); }
+  .order-assign select {
+    padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--text);
+    background: var(--panel2); border: 1px solid var(--border); cursor: pointer;
   }
-  .cat-assign button.active { background: var(--gold); color: #000; border-color: var(--gold); font-weight: 700; }
 
   /* ---------- 덱 카드 (기존 시안 디자인) ---------- */
   .deck {
@@ -642,6 +642,34 @@ function groupsInCategory_(cat) {
   return out;
 }
 
+// 같은 카테고리+그룹 안의 덱들을 "순서"(order) 기준으로 정렬한다. order를 아직 지정하지 않은
+// (관리자가 순서를 바꾼 적 없는) 덱들은 전부 맨 뒤로 몰아넣되, 그들끼리는 원래 있던 순서 그대로
+// 유지한다 — 그래서 "순서 바꾸기"를 한 번도 안 쓰면 예전과 똑같은 순서로 보인다.
+function deckOrderVal_(d) {
+  var n = parseFloat(d && d.order);
+  return isFinite(n) ? n : 999999;
+}
+function decksInGroupSorted_(cat, group) {
+  return state.decks
+    .map(function (d, i) { return { d: d, i: i }; })
+    .filter(function (x) { return deckCategory_(x.d) === cat && deckGroup_(x.d) === group; })
+    .sort(function (a, b) {
+      var oa = deckOrderVal_(a.d), ob = deckOrderVal_(b.d);
+      return oa !== ob ? oa - ob : a.i - b.i;
+    })
+    .map(function (x) { return x.d; });
+}
+// 화면에 보여줄 덱 제목. 그룹이 있는 덱(레이드/아발론/대난투로 정리된 덱)은
+// "그룹 표시명 + 순번"으로 자동으로 만들고, 그룹이 없는 예전 자유 형식 덱은 직접 적어둔 제목을 그대로 쓴다.
+function deckPositionLabel_(deck) {
+  var cat = deckCategory_(deck), grp = deckGroup_(deck);
+  if (!grp) return deck.title || '덱';
+  var list = decksInGroupSorted_(cat, grp);
+  var idx = list.findIndex(function (d) { return d.id === deck.id; });
+  var pos = idx === -1 ? 1 : idx + 1;
+  return groupLabel_(cat, grp) + ' ' + pos;
+}
+
 /* ---------- 3단 드롭다운 메뉴 (카테고리 → 그룹 → 번호) ---------- */
 function renderCategorySelect_() {
   var el = document.getElementById('sel-category');
@@ -689,7 +717,6 @@ function renderDeckSelect_() {
   var el = document.getElementById('sel-deck');
   var cat = state.category;
   var groups = groupsInCategory_(cat);
-  var decksInCat = state.decks.filter(function (d) { return deckCategory_(d) === cat; });
   var decksToShow;
   if (groups.length) {
     if (!state.group) {
@@ -697,9 +724,9 @@ function renderDeckSelect_() {
       el.disabled = true;
       return;
     }
-    decksToShow = decksInCat.filter(function (d) { return deckGroup_(d) === state.group; });
+    decksToShow = decksInGroupSorted_(cat, state.group);
   } else {
-    decksToShow = decksInCat;
+    decksToShow = decksInGroupSorted_(cat, ''); // 그룹 구분이 없는(예전) 덱들
   }
   el.disabled = false;
   var options = '<option value="" disabled' + (state.currentId ? '' : ' selected') + '>선택하세요</option>' +
@@ -716,6 +743,35 @@ function onDeckSelectChange_(id) {
   if (id === '__new__') { newDeck(); return; }
   if (!id) return;
   selectDeck(id);
+}
+
+// 현재 보고 있는 덱을 같은 그룹(요일/성문 등) 안에서 newPosition번째 자리로 옮긴다.
+// 그룹 안의 모든 덱 순서를 1..N으로 새로 매겨서 서버에 가볍게 반영한다(덱 내용 자체는 안 건드림).
+function reorderDeck_(newPosition) {
+  var deck = state.currentDeck;
+  if (!deck) return;
+  var cat = deckCategory_(deck), grp = deckGroup_(deck);
+  if (!grp) return; // 그룹이 없는(예전) 덱은 순서 개념이 없음
+  var list = decksInGroupSorted_(cat, grp);
+  var curIdx = list.findIndex(function (d) { return d.id === state.currentId; });
+  if (curIdx === -1) return;
+  var moved = list.splice(curIdx, 1)[0];
+  newPosition = Math.max(1, Math.min(newPosition, list.length + 1));
+  list.splice(newPosition - 1, 0, moved);
+
+  var updates = list.map(function (d, i) { return { id: d.id, order: i + 1 }; });
+  updates.forEach(function (u) {
+    var summary = state.decks.find(function (x) { return x.id === u.id; });
+    if (summary) summary.order = u.order;
+  });
+  renderDeckSelect_();
+  renderCurrentDeck();
+
+  Promise.all(updates.map(function (u) {
+    return api('setOrder', {}, 'POST', { pw: state.adminPw, id: u.id, order: u.order });
+  })).catch(function () {
+    alert('순서 저장 중 오류가 발생했습니다. 새로고침 후 다시 시도해주세요.');
+  });
 }
 
 // 예전 renderDeckList() 호출부와의 호환을 위해 유지: 3단 드롭다운을 전부 다시 그린다.
@@ -1112,22 +1168,34 @@ function renderDeckHtml(deck, editable) {
     timelineHtml += '</div>';
   }
 
-  var catAssignHtml = editable
-    ? '<div class="cat-assign">' + CATEGORIES.map(function (cat) {
-        return '<button type="button" class="' + (deckCategory_(deck) === cat ? 'active' : '') + '" data-set-category="' + esc(cat) + '">' + esc(cat) + '</button>';
-      }).join('') + '</div>'
-    : '';
+  // 그룹(요일/성문 등)이 있는 덱은 제목을 "그룹 표시명 + 순번"으로 자동으로 만들어서 쓴다.
+  // (그룹 드롭다운에서 이미 뭘 고를지 정하고 순서도 정하니, 제목을 따로 손으로 적을 필요가 없어졌다.)
+  // deck.title에도 그대로 반영해둬서 저장 시 서버 쪽 title 칼럼도 최신 상태로 유지된다.
+  var isGrouped = !!deckGroup_(deck);
+  if (isGrouped) deck.title = deckPositionLabel_(deck);
+
+  // 그룹이 있는 덱은 관리자 모드에서 "순서" 드롭다운으로 같은 그룹 안 순서를 바꿀 수 있다.
+  var orderSelectHtml = '';
+  if (editable && isGrouped) {
+    var siblings = decksInGroupSorted_(deckCategory_(deck), deckGroup_(deck));
+    var curPos = siblings.findIndex(function (d) { return d.id === deck.id; }) + 1;
+    var optHtml = siblings.map(function (d, i) {
+      return '<option value="' + (i + 1) + '"' + (i + 1 === curPos ? ' selected' : '') + '>' + (i + 1) + '번째</option>';
+    }).join('');
+    orderSelectHtml = '<div class="order-assign">이 그룹 안에서 순서: <select onchange="reorderDeck_(Number(this.value))">' + optHtml + '</select></div>';
+  }
 
   // deck.bossIcon을 직접 지정해둔 덱은 그걸 쓰고, 없으면 요일/그룹에 맞는 기본 보스 이미지를 자동으로 쓴다.
   var effectiveBossIcon = deck.bossIcon || defaultBossIcon_(deck);
   var bossImg = '<img src="' + esc(effectiveBossIcon) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)">';
   var bossTintStyle = ' style="--boss-tint:' + bossTint_(deck) + '"';
+  var titleEditable = editable && !isGrouped; // 그룹이 있는 덱은 제목이 자동 생성이라 직접 못 고침
   var titleBar = '<div class="title-bar">' +
     (editable
       ? '<div class="title-boss editable"' + bossTintStyle + ' data-edit-boss title="클릭해서 보스 이미지 URL을 직접 지정 (비워두면 요일 기본 이미지 사용)">' + bossImg + '</div>'
       : (effectiveBossIcon ? '<div class="title-boss"' + bossTintStyle + '>' + bossImg + '</div>' : '')) +
     '<div class="title-text">' +
-    (editable ? '<h1 class="editable-text" contenteditable="true" data-field="title">' + esc(deck.title) + '</h1>' : '<h1>' + esc(deck.title) + '</h1>') +
+    (titleEditable ? '<h1 class="editable-text" contenteditable="true" data-field="title">' + esc(deck.title) + '</h1>' : '<h1>' + esc(deck.title) + '</h1>') +
     (editable
       ? '<span class="note-tag editable-text" contenteditable="true" data-field="noteTag" data-placeholder="태그(선택)">' + esc(deck.noteTag) + '</span>'
       : (deck.noteTag ? '<span class="note-tag">' + esc(deck.noteTag) + '</span>' : '')) +
@@ -1135,7 +1203,7 @@ function renderDeckHtml(deck, editable) {
 
   var addCharRow = editable ? '<div class="add-row"><button type="button" class="add-btn" data-add-char>+ 캐릭터 추가</button></div>' : '';
 
-  return '<div class="deck' + (editable ? ' editing' : '') + '">' + catAssignHtml + titleBar +
+  return '<div class="deck' + (editable ? ' editing' : '') + '">' + orderSelectHtml + titleBar +
     '<div class="row charset" style="grid-template-columns:repeat(' + chars.length + ',1fr)">' + charSetsHtml + '</div>' +
     addCharRow +
     '<div class="row pets">' + petsHtml + positionBoxHtml + '</div>' +
@@ -1160,7 +1228,9 @@ function blankCharSlot_(col, slot) {
 function newDeck() {
   var id = 'deck_' + Date.now();
   var blank = {
-    id: id, title: '새 덱', category: state.category, group: state.group || '', noteTag: '', bossIcon: '',
+    // 새 덱은 항상 같은 그룹 안에서 1번째로 온다 — 이미 있는 다른 덱들을 안 건드려도,
+    // 걔들은 "순서 미지정"(맨 뒤로 취급)이라 order:1을 주면 자동으로 맨 앞에 온다.
+    id: id, title: '새 덱', category: state.category, group: state.group || '', order: 1, noteTag: '', bossIcon: '',
     // 대부분의 덱은 5명(후열1 · 중열2 · 전열2) 구성이라 기본으로 5칸을 미리 만들어 둔다.
     // 필요하면 "+ 캐릭터 추가"로 더 넣거나, 빈 칸을 그대로 두면 저장 시 제외된다.
     characters: [
@@ -1174,7 +1244,7 @@ function newDeck() {
   };
   state.currentId = id;
   state.currentDeck = blank;
-  state.decks.push({ id: id, title: '새 덱', category: state.category, group: state.group || '' });
+  state.decks.push({ id: id, title: '새 덱', category: state.category, group: state.group || '', order: 1 });
   renderDeckList();
   document.getElementById('viewer').innerHTML =
     '<div class="deck"><div class="loading-msg"><span class="spinner"></span>불러오는 중입니다...</div></div>';
@@ -1442,13 +1512,6 @@ function wireAdminInline_(container, deck) {
       refresh();
     };
   });
-  container.querySelectorAll('[data-set-category]').forEach(function (btn) {
-    btn.onclick = function () {
-      deck.category = btn.dataset.setCategory;
-      refresh();
-    };
-  });
-
   // 글자 클릭 → 바로 수정 (contenteditable). 재렌더링 없이 데이터만 갱신해서 커서 위치 유지.
   container.querySelectorAll('[contenteditable="true"]').forEach(function (el) {
     el.addEventListener('keydown', function (e) {
@@ -1618,8 +1681,13 @@ function saveDeck_ui(d) {
       state.currentDeck = d;
       var found = state.decks.find(function (x) { return x.id === d.id; });
       if (found) { found.title = d.title; found.category = d.category; found.group = d.group || ''; }
-      else state.decks.push({ id: d.id, title: d.title, category: d.category, group: d.group || '' });
+      else state.decks.push({ id: d.id, title: d.title, category: d.category, group: d.group || '', order: d.order || '' });
       renderDeckList();
+      // order는 저장 전용 칼럼이라 일반 저장(action:'save')이 건드리지 않는다 — 새 덱을 처음 저장할 때
+      // (order:1로 만들어둔 값)만 여기서 따로 한 번 반영해준다. 그 이후엔 "순서" 드롭다운으로 바꾼다.
+      if (d.order) {
+        api('setOrder', {}, 'POST', { pw: state.adminPw, id: d.id, order: d.order }).catch(function () {});
+      }
     } else {
       msg.textContent = '저장 실패: ' + (res.error || '');
       msg.className = 'msg err';
