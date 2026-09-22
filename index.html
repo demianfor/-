@@ -994,6 +994,25 @@ function inlineImagesForCapture_(root) {
   });
 }
 
+// html2canvas는 CSS의 aspect-ratio나 flex로 계산되는 이미지 높이를 브라우저처럼 정확히
+// 다시 계산해주지 못한다(알려진 한계). 그래서 카드/배치 칸의 이미지가 실제 화면과 달리
+// 통째로 찌그러지거나(object-fit:cover가 제대로 안 먹음), 이름표와의 위치가 어긋나 보인다.
+// 캡처 직전에, 실제 화면(오프스크린 사본)에서 브라우저가 계산해 놓은 픽셀 크기를 그대로
+// img에 굳혀(inline width/height) 넘기면 html2canvas가 다시 계산할 필요 없이 그대로 그린다.
+function freezeCaptureSizes_(root) {
+  var selectors = [
+    '.card-char img', '.card-skill img', '.pet-card img',
+    '.position-col img', '.gear-cell img', '.step img'
+  ];
+  Array.prototype.slice.call(root.querySelectorAll(selectors.join(','))).forEach(function (img) {
+    var rect = img.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      img.style.width = rect.width + 'px';
+      img.style.height = rect.height + 'px';
+    }
+  });
+}
+
 function downloadDeckImage(mode) {
   var deck = state.currentDeck;
   if (!deck) { alert('저장할 덱이 없습니다.'); return; }
@@ -1025,6 +1044,7 @@ function downloadDeckImage(mode) {
 
   var bg = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim() || '#171c27';
   inlineImagesForCapture_(deckEl).then(function () {
+    freezeCaptureSizes_(deckEl);
     return html2canvas(deckEl, {
       backgroundColor: bg,
       // 확대해서 볼 때 깨져 보인다는 피드백이 있어서 배율을 3배로 올렸다.
