@@ -482,6 +482,7 @@ var state = {
   cards: [],
   icons: [],
   equip: { weapon: [], armor: [], item: [], rune: [] },
+  jobGear: {}, // 직업(기사/법사/힐러/사수)별 기본 무기/갑옷/장신구/룬. 캐릭터를 고르면 자동으로 채워주는 데 씀.
   librariesPromise: null // loadLibraries()가 지금 요청 중이면 그 Promise가 여기 들어있음 (중복 요청 방지용)
 };
 
@@ -1337,6 +1338,7 @@ function loadLibraries() {
     state.cards = r.cards || [];
     state.icons = r.icons || [];
     state.equip = r.equip || { weapon: [], armor: [], item: [], rune: [] };
+    state.jobGear = r.jobGear || {};
   }, function (err) {
     state.librariesPromise = null;
     throw err;
@@ -1527,6 +1529,16 @@ function wireAdminInline_(container, deck) {
       var lib = findChar_(c.name);
       c.portrait = lib ? lib.portrait : '';
       // 카드는 캐릭터와 별개로 관리하므로 여기서는 건드리지 않는다.
+      // 캐릭터의 직업(기사/법사/힐러/사수)에 맞는 기본 무기/갑옷/장신구/룬을 자동으로 채워준다.
+      // 새 덱에서 캐릭터를 처음 고를 때든, 기존 덱에서 캐릭터를 바꿀 때든 똑같이 적용된다.
+      // "직업별 기본장비" 시트에 값이 없으면(직업 정보가 없거나 매칭이 안 되면) 아무것도 바꾸지 않는다.
+      var defaults = lib && lib.role ? state.jobGear[lib.role] : null;
+      if (defaults) {
+        c.weapon = gearFromEquip_('weapon', defaults.weapon);
+        c.armor = gearFromEquip_('armor', defaults.armor);
+        c.item = gearFromEquip_('item', defaults.item);
+        c.rune = gearFromEquip_('rune', defaults.rune);
+      }
       refresh();
     };
   });
