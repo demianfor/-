@@ -209,7 +209,16 @@
   .pet-card { position: relative; border-radius: 10px; overflow: hidden; border: 2px solid var(--border); background: var(--panel2); }
   .pet-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; object-position: 50% 22%; display: block; }
   .pet-card .name { background: #000; color: #fff; text-align: center; font-size: clamp(10px, 2.4vw, 12px); padding: 5px 0; }
-  .pet-pos { text-align: center; font-size: 10px; color: var(--gold); margin-bottom: 4px; }
+  .pet-pos { text-align: center; font-size: 13px; color: var(--gold); margin-bottom: 4px; }
+  /* 라이트 모드에서는 검정 바탕에 흰 글씨가 다른 곳(밝은 배경)이랑 안 어울려서, 흰 바탕에
+     검은 글씨로 뒤집어서 나머지 화면과 톤을 맞춘다. */
+  :root[data-theme="light"] .card-char .name,
+  :root[data-theme="light"] .card-skill .name,
+  :root[data-theme="light"] .pet-card .name {
+    background: var(--panel);
+    color: var(--text);
+    border-top: 1px solid var(--border);
+  }
 
   .position-box { background: var(--panel2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; height: 100%; }
   .position-box .headers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 8px; flex: 0 0 auto; }
@@ -365,7 +374,7 @@
     .position-box .cols { gap: 4px; }
     .position-col { gap: 3px; }
     .position-col .pname { font-size: 8.5px; margin-top: 1px; }
-    .pet-pos { font-size: 8.5px; margin-bottom: 2px; }
+    .pet-pos { font-size: 11px; margin-bottom: 2px; }
     .save-bar { flex-wrap: wrap; }
     .save-bar #save-msg { flex: 1 1 100%; margin-right: 0; }
 
@@ -405,7 +414,7 @@
   .capture-narrow .position-box .cols { gap: 4px; }
   .capture-narrow .position-col { gap: 3px; }
   .capture-narrow .position-col .pname { font-size: 8.5px; margin-top: 1px; }
-  .capture-narrow .pet-pos { font-size: 8.5px; margin-bottom: 2px; }
+  .capture-narrow .pet-pos { font-size: 11px; margin-bottom: 2px; }
   .capture-narrow .timeline { padding: 8px 8px; margin-top: 8px; }
   .capture-narrow .timeline-title { margin-bottom: 6px; }
   .capture-narrow .cycle { margin-bottom: 6px; }
@@ -1346,9 +1355,9 @@ function sortedCharsForRow(characters) {
 }
 
 var POS_OPTIONS = [
-  ['후열:1', '후열1'], ['후열:2', '후열2'],
+  ['전열:1', '전열1'], ['전열:2', '전열2'],
   ['중열:1', '중열1'], ['중열:2', '중열2'],
-  ['전열:1', '전열1'], ['전열:2', '전열2']
+  ['후열:1', '후열1'], ['후열:2', '후열2']
 ];
 function posOptionsHtml_(col, slot) {
   var cur = col + ':' + slot;
@@ -1406,7 +1415,7 @@ function renderDeckHtml(deck, editable) {
     var p = pets.find(function (x) { return x.pos === pos; }) || { pos: pos, name: '', img: '' };
     var overlay = editable ? '<select class="tile-overlay" data-edit-pet="' + pos + '">' + optionsHtml_(state.pets, p.name) + '</select>' : '';
     var dragHandle = editable ? '<button type="button" class="drag-handle" data-drag-handle="pet" title="드래그해서 자리 바꾸기">⠿</button>' : '';
-    return '<div><div class="pet-pos">' + esc(pos) + ' 펫</div>' +
+    return '<div><div class="pet-pos">' + esc(pos) + '</div>' +
       '<div class="pet-card' + (editable ? ' editable' : '') + '"' + (editable ? ' data-drag-pet="' + esc(pos) + '"' : '') + '><img src="' + esc(livePetImg_(p.name, p.img)) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)"><div class="name">' + esc(p.name) + '</div>' + overlay + dragHandle + '</div></div>';
   }).join('');
 
@@ -1966,8 +1975,19 @@ function wireAdminInline_(container, deck) {
     sel.onchange = function (e) {
       var idx = Number(sel.dataset.editPos);
       var parts = e.target.value.split(':');
-      deck.characters[idx].col = parts[0];
-      deck.characters[idx].slot = Number(parts[1]);
+      var newCol = parts[0], newSlot = Number(parts[1]);
+      var moving = deck.characters[idx];
+      var oldCol = moving.col, oldSlot = moving.slot;
+      // 고른 자리를 이미 다른 캐릭터가 차지하고 있으면, 그 캐릭터를 지금 옮기는 캐릭터가 있던
+      // 자리로 서로 맞바꾼다. 이걸 안 하면 같은 자리(예: 중열1)에 캐릭터가 둘 겹쳐서 배치 박스가
+      // 꼬여 보이는 문제가 있었다.
+      var occupant = deck.characters.find(function (c, i) { return i !== idx && c.col === newCol && c.slot === newSlot; });
+      if (occupant) {
+        occupant.col = oldCol;
+        occupant.slot = oldSlot;
+      }
+      moving.col = newCol;
+      moving.slot = newSlot;
       refresh();
     };
   });
@@ -2053,7 +2073,15 @@ function wireAdminInline_(container, deck) {
   var addCharBtn = container.querySelector('[data-add-char]');
   if (addCharBtn) addCharBtn.onclick = function () {
     deck.characters = deck.characters || [];
-    deck.characters.push({ col: '전열', slot: 1, name: '', portrait: '', weapon: {}, armor: {}, item: {}, rune: {}, card: {} });
+    // 항상 "전열1"에 추가하면 이미 전열1에 캐릭터가 있을 때 자리가 겹쳐버린다.
+    // 아직 아무도 없는 자리를 앞쪽(전열1,2 → 중열1,2 → 후열1,2) 순서로 찾아서 거기에 넣고,
+    // 6자리가 이미 다 찼으면(드문 경우) 예전처럼 전열1에 넣어 겹치더라도 자리를 만든다.
+    var taken = {};
+    deck.characters.forEach(function (c) { taken[c.col + ':' + c.slot] = true; });
+    var freeSpot = POS_OPTIONS.find(function (p) { return !taken[p[0]]; });
+    var col = '전열', slot = 1;
+    if (freeSpot) { var parts = freeSpot[0].split(':'); col = parts[0]; slot = Number(parts[1]); }
+    deck.characters.push({ col: col, slot: slot, name: '', portrait: '', weapon: {}, armor: {}, item: {}, rune: {}, card: {} });
     refresh();
   };
   container.querySelectorAll('[data-add-step]').forEach(function (btn) {
