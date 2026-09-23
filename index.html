@@ -444,6 +444,7 @@
   <div class="right">
     <button class="pill-btn active" data-theme-btn="dark" onclick="setTheme('dark')">다크</button>
     <button class="pill-btn" data-theme-btn="light" onclick="setTheme('light')">라이트</button>
+    <button class="pill-btn" id="free-btn" onclick="onFreeBtn()">자유 덱</button>
     <button class="pill-btn" id="add-item-btn" style="display:none" onclick="openAddItemModal()">+ 새 항목 추가</button>
     <button class="pill-btn" id="lib-manage-btn" style="display:none" onclick="openLibraryManageModal()">목록 관리</button>
     <button class="pill-btn" id="admin-btn" onclick="onAdminBtn()">관리자 모드</button>
@@ -451,10 +452,13 @@
 </div>
 
 <div class="layout">
-  <div class="menu-row">
+  <div class="menu-row" id="menu-row-normal">
     <select id="sel-category" onchange="onCategoryChange_(this.value)"></select>
     <select id="sel-group" onchange="onGroupChange_(this.value)"><option>불러오는 중...</option></select>
     <select id="sel-deck" onchange="onDeckSelectChange_(this.value)"></select>
+  </div>
+  <div class="menu-row" id="free-menu-row" style="display:none">
+    <select id="sel-free-deck" onchange="onFreeDeckSelectChange_(this.value)"></select>
   </div>
   <div class="main">
     <div id="admin-hint" style="display:none">관리자 모드: 이미지를 클릭하면 바로 바꿀 수 있고, 글자를 클릭하면 바로 고칠 수 있어요.</div>
@@ -534,10 +538,23 @@
 ========================================================= */
 var API_URL = "https://script.google.com/macros/s/AKfycbzlUzZRvtZuV0Y939_y49H6bxzeHaTOdg5kuHGUsJUbS7orzIbBRYaCRs8z9h78QnmcMQ/exec";
 
+// "자유 사용": 관리자 권한 없이 길드원 누구나 만들고 고칠 수 있는 별도 공간. 레이드/아발론/대난투
+// 카테고리 목록(CATEGORIES)에는 일부러 안 넣어서, 평소의 3단 드롭다운(카테고리→그룹→번호)에는
+// 전혀 안 섞이고 완전히 별도의 화면(자유 덱 목록)에서만 다룬다.
+var FREE_CATEGORY = '자유 사용';
+var FREE_DECK_LIMIT = 20;
+function isFreeDeck_(d) { return !!d && d.category === FREE_CATEGORY; }
+
 var state = {
   viewPw: '',
   adminPw: '',
   isAdmin: false,
+  mode: 'normal', // 'normal' | 'free' — 위 "자유 덱" 버튼으로 전환
+  freePin: '', // 자유 덱을 새로 만들 때 정한 4자리 번호(있으면). 그 덱을 처음 저장할 때만 같이 보낸다.
+  // 핀이 걸린 자유 덱을 수정할 때, 한 번 맞는 핀을 입력하면 이 화면을 새로고침하기 전까지는
+  // 저장할 때마다 다시 안 물어보도록 기억해두는 용도({덱id: 핀}). 서버로는 절대 미리 안 보내고,
+  // 서버가 "핀이 틀렸다"고 할 때만 물어봐서 채운다.
+  freeEditPins: {},
   decks: [],
   category: '레이드', // 상단 카테고리 탭(레이드/아발론/대난투) 중 현재 선택된 것
   castle: null, // 아발론 전용: 성 이름(엘다리아/엘아이아) 중 현재 선택된 것. null이면 성 선택 단계.
@@ -907,7 +924,7 @@ function renderDeckList() {
 
 function selectDeck(id) {
   state.currentId = id;
-  renderDeckList();
+  if (state.mode === 'free') { renderFreeDeckSelect_(); } else { renderDeckList(); }
   document.getElementById('viewer').innerHTML =
     '<div class="deck"><div class="loading-msg"><span class="spinner"></span>덱을 불러오는 중입니다...</div></div>';
   document.getElementById('admin-bar').style.display = 'none';
@@ -944,14 +961,19 @@ function renderCurrentDeck() {
     document.getElementById('deck-toolbar').style.display = 'none';
     return;
   }
-  var editable = !!state.isAdmin;
+  // 자유 덱은 관리자가 아니어도 늘 편집 가능(그게 이 공간의 목적) — 관리자 모드일 때도 그대로 편집 가능.
+  var free = state.mode === 'free' && isFreeDeck_(deck);
+  var editable = !!state.isAdmin || free;
   viewer.innerHTML = renderDeckHtml(deck, editable);
   document.getElementById('deck-toolbar').style.display = 'block';
   if (editable) {
     wireAdminInline_(viewer, deck);
     document.getElementById('admin-bar').style.display = 'flex';
     document.getElementById('admin-hint').style.display = 'block';
-    wireAdminBar_(deck);
+    document.getElementById('admin-hint').textContent = free
+      ? '자유 덱 편집 중: 이미지를 클릭하면 바로 바꿀 수 있고, 글자를 클릭하면 바로 고칠 수 있어요. 다른 길드원도 이 덱을 고칠 수 있어요.'
+      : '관리자 모드: 이미지를 클릭하면 바로 바꿀 수 있고, 글자를 클릭하면 바로 고칠 수 있어요.';
+    if (free) { wireFreeBar_(deck); } else { wireAdminBar_(deck); }
   } else {
     document.getElementById('admin-bar').style.display = 'none';
     document.getElementById('admin-hint').style.display = 'none';
@@ -1610,6 +1632,199 @@ function newDeck() {
   document.getElementById('viewer').innerHTML =
     '<div class="deck"><div class="loading-msg"><span class="spinner"></span>불러오는 중입니다...</div></div>';
   loadLibraries().then(renderCurrentDeck);
+}
+
+/* =========================================================
+   자유 덱 — 관리자 권한 없이 길드원 누구나 만들고 고칠 수 있는 별도 공간.
+   레이드/아발론/대난투처럼 카테고리→그룹→번호로 이어지는 3단 드롭다운에 섞이지 않고,
+   완전히 별도의 화면(이름만 쭉 나열된 목록)에서 다룬다.
+========================================================= */
+function onFreeBtn() {
+  state.mode = state.mode === 'free' ? 'normal' : 'free';
+  var btn = document.getElementById('free-btn');
+  btn.textContent = state.mode === 'free' ? '자유 덱 ON' : '자유 덱';
+  btn.classList.toggle('admin-on', state.mode === 'free');
+  document.getElementById('menu-row-normal').style.display = state.mode === 'free' ? 'none' : 'flex';
+  document.getElementById('free-menu-row').style.display = state.mode === 'free' ? 'flex' : 'none';
+  state.currentId = null;
+  state.currentDeck = null;
+  if (state.mode === 'free') {
+    renderFreeDeckSelect_();
+  } else {
+    renderDeckList();
+  }
+  renderCurrentDeck();
+}
+
+function freeDecksSorted_() {
+  return state.decks.filter(isFreeDeck_);
+}
+
+function renderFreeDeckSelect_() {
+  var sel = document.getElementById('sel-free-deck');
+  var freeDecks = freeDecksSorted_();
+  var isDraft = state.currentId && !freeDecks.some(function (d) { return d.id === state.currentId; }) &&
+    state.currentDeck && isFreeDeck_(state.currentDeck);
+  var options = '<option value="" disabled' + (state.currentId ? '' : ' selected') + '>자유 덱 선택 (' + freeDecks.length + '/' + FREE_DECK_LIMIT + '개)</option>' +
+    freeDecks.map(function (d) {
+      return '<option value="' + esc(d.id) + '"' + (d.id === state.currentId ? ' selected' : '') + '>' + esc(d.title) + '</option>';
+    }).join('');
+  if (isDraft) {
+    options += '<option value="' + esc(state.currentId) + '" selected>' + esc(state.currentDeck.title || '새 자유 덱') + ' (저장 전)</option>';
+  }
+  options += '<option value="__newfree__">+ 새 자유 덱 만들기</option>';
+  sel.innerHTML = options;
+}
+
+function onFreeDeckSelectChange_(id) {
+  if (id === '__newfree__') { newFreeDeck(); return; }
+  if (!id) return;
+  selectDeck(id);
+}
+
+function newFreeDeck() {
+  if (freeDecksSorted_().length >= FREE_DECK_LIMIT) {
+    alert('자유 덱은 최대 ' + FREE_DECK_LIMIT + '개까지만 만들 수 있어요. 안 쓰는 덱을 지우고 다시 시도해주세요.');
+    renderFreeDeckSelect_();
+    return;
+  }
+  var title = prompt('자유 덱 이름을 입력하세요');
+  if (title === null) { renderFreeDeckSelect_(); return; }
+  title = title.trim();
+  if (!title) { alert('이름을 입력해주세요.'); return newFreeDeck(); }
+  var pin = prompt('이 덱을 나중에 고치거나 지울 때 필요한 4자리 번호를 정해주세요.\n비워두면 다른 길드원도 이 덱을 자유롭게 고치거나 지울 수 있어요.', '');
+  if (pin === null) { renderFreeDeckSelect_(); return; }
+  pin = pin.trim();
+  if (pin && !/^\d{4}$/.test(pin)) {
+    alert('번호는 숫자 4자리로 입력해주세요.');
+    return newFreeDeck();
+  }
+  if (!pin && !confirm('번호를 정하지 않으면 다른 길드원도 이 덱을 고치거나 지울 수 있어요. 이대로 진행할까요?')) {
+    return newFreeDeck();
+  }
+  var id = 'free_' + Date.now();
+  var blank = {
+    id: id, title: title, category: FREE_CATEGORY, group: '', order: '', noteTag: '', bossIcon: '', pin: pin,
+    characters: [
+      blankCharSlot_('후열', 1),
+      blankCharSlot_('중열', 1),
+      blankCharSlot_('중열', 2),
+      blankCharSlot_('전열', 1),
+      blankCharSlot_('전열', 2)
+    ],
+    pets: [], timeline: { cycles: defaultTimelineCycles_('', '') }, warnings: []
+  };
+  state.currentId = id;
+  state.currentDeck = blank;
+  renderFreeDeckSelect_();
+  document.getElementById('viewer').innerHTML =
+    '<div class="deck"><div class="loading-msg"><span class="spinner"></span>불러오는 중입니다...</div></div>';
+  loadLibraries().then(renderCurrentDeck);
+}
+
+function wireFreeBar_(deck) {
+  document.getElementById('admin-save-btn').onclick = function () { saveFreeDeck_ui(deck); };
+  document.getElementById('admin-delete-btn').onclick = function () {
+    if (isDraftDeck_()) {
+      if (!confirm('저장하지 않은 새 자유 덱을 취소할까요?')) return;
+      discardDraftDeck_();
+      return;
+    }
+    // 관리자는 번호를 몰라도 그냥 지울 수 있게, 기존 관리자용 삭제 통로를 그대로 쓴다.
+    if (state.isAdmin) { deleteDeck_ui(deck.id); return; }
+    deleteFreeDeck_ui(deck.id);
+  };
+  document.getElementById('admin-revert-btn').onclick = function () {
+    if (isDraftDeck_()) {
+      if (!confirm('저장하지 않은 새 자유 덱을 취소할까요?')) return;
+      discardDraftDeck_();
+      return;
+    }
+    if (!confirm('저장하지 않은 수정 내용을 취소하고 마지막 저장 상태로 되돌릴까요?')) return;
+    if (state.currentId) selectDeck(state.currentId);
+  };
+}
+
+// pinOverride가 있으면 그 값으로 시도(서버가 "핀이 틀렸다"고 해서 다시 물어본 경우), 없으면
+// 이번 화면(새로고침 전까지)에서 이미 맞다고 확인된 핀이 있으면 그걸 자동으로 같이 보낸다.
+function saveFreeDeck_ui(d, pinOverride) {
+  var msg = document.getElementById('save-msg');
+  var btn = document.getElementById('admin-save-btn');
+  if (btn) btn.disabled = true;
+  msg.textContent = '저장 중...';
+  msg.className = 'msg';
+  var payload = Object.assign({}, d, {
+    category: FREE_CATEGORY, group: '',
+    characters: (d.characters || []).filter(function (c) { return c.name; })
+  });
+  var pinToSend = pinOverride !== undefined ? pinOverride : (state.freeEditPins[d.id] || '');
+  api('saveFree', {}, 'POST', { pw: state.viewPw, deck: payload, pin: pinToSend }).then(function (res) {
+    if (btn) btn.disabled = false;
+    if (res.ok) {
+      // 방금 처음 만든 덱이면 d.pin에 조금 전 정한 핀이 들어있으니 그걸 기억해두고(그래야 바로
+      // 다음 수정부터 또 안 물어봄), 기존 덱을 고친 거면 이번에 맞았던 핀(pinToSend)을 그대로 기억한다.
+      state.freeEditPins[d.id] = d.pin || pinToSend;
+      msg.textContent = '저장되었습니다.';
+      msg.className = 'msg ok';
+      if (state.currentId === d.id) state.currentDeck = d;
+      var found = state.decks.find(function (x) { return x.id === d.id; });
+      if (found) { found.title = d.title; found.category = FREE_CATEGORY; found.group = ''; found.tag = d.noteTag || ''; }
+      else state.decks.push({ id: d.id, title: d.title, category: FREE_CATEGORY, group: '', order: '', tag: d.noteTag || '' });
+      renderFreeDeckSelect_();
+    } else if (res.error === 'WRONG_PIN') {
+      msg.textContent = '';
+      msg.className = 'msg';
+      var entered = prompt('이 덱은 번호로 보호돼 있어요. 수정하려면 만들 때 정한 4자리 번호를 입력하세요.', '');
+      if (entered === null) return;
+      saveFreeDeck_ui(d, entered.trim());
+    } else if (res.error === 'FREE_DECK_LIMIT') {
+      msg.textContent = '저장 실패: 자유 덱은 최대 ' + FREE_DECK_LIMIT + '개까지만 만들 수 있어요.';
+      msg.className = 'msg err';
+    } else {
+      msg.textContent = '저장 실패: ' + (res.error || '');
+      msg.className = 'msg err';
+    }
+  }).catch(function () {
+    if (btn) btn.disabled = false;
+    msg.textContent = '저장 중 통신 오류가 발생했습니다. 다시 시도해주세요.';
+    msg.className = 'msg err';
+  });
+}
+
+// pinOverride가 있으면 그 값으로 재시도. 없으면 이번 화면에서 이미 확인된 핀이 있는 경우
+// 다시 안 물어보고 그걸 그대로 쓰고(수정할 때 이미 한 번 맞혀본 핀이면 삭제할 때도 또 물어볼
+// 필요 없음), 없을 때만 새로 물어본다.
+function deleteFreeDeck_ui(id, pinOverride) {
+  if (pinOverride === undefined && !confirm('이 자유 덱을 삭제할까요? 되돌릴 수 없습니다.')) return;
+  var pin;
+  if (pinOverride !== undefined) {
+    pin = pinOverride;
+  } else if (Object.prototype.hasOwnProperty.call(state.freeEditPins, id)) {
+    pin = state.freeEditPins[id];
+  } else {
+    pin = (prompt('이 덱을 만들 때 정한 4자리 번호가 있다면 입력하세요. (없으면 그냥 확인만 눌러주세요)', '') || '').trim();
+  }
+  var msg = document.getElementById('save-msg');
+  if (msg) { msg.textContent = '삭제 중...'; msg.className = 'msg'; }
+  api('deleteFree', {}, 'POST', { pw: state.viewPw, id: id, pin: pin }).then(function (res) {
+    if (res.ok) {
+      delete state.freeEditPins[id];
+      state.decks = state.decks.filter(function (x) { return x.id !== id; });
+      state.currentId = null;
+      state.currentDeck = null;
+      renderFreeDeckSelect_();
+      renderCurrentDeck();
+    } else if (res.error === 'WRONG_PIN') {
+      if (msg) { msg.textContent = ''; msg.className = 'msg'; }
+      var entered = prompt('번호가 맞지 않아요. 이 덱을 만들 때 정한 4자리 번호를 다시 입력해주세요. (모르면 관리자에게 관리자 모드로 삭제해달라고 요청하세요)', '');
+      if (entered === null) return;
+      deleteFreeDeck_ui(id, entered.trim());
+    } else {
+      if (msg) { msg.textContent = '삭제 실패: ' + (res.error || ''); msg.className = 'msg err'; }
+    }
+  }).catch(function () {
+    if (msg) { msg.textContent = '삭제 중 통신 오류가 발생했습니다.'; msg.className = 'msg err'; }
+  });
 }
 
 // force=true는 "방금 라이브러리를 추가/수정했으니 캐시 무시하고 반드시 새로 받아와야 한다"는
