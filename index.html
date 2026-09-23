@@ -77,7 +77,7 @@
   #gate h2 { margin: 0 0 6px; font-size: 18px; }
   #gate p { color: var(--muted); font-size: 12.5px; margin: 0 0 18px; }
   #gate input { width: 100%; margin-bottom: 10px; }
-  #gate button { width: 100%; background: var(--blue); color: #fff; border: none; font-weight: 600; padding: 8px; }
+  #gate button { width: 100%; background: var(--blue); color: #fff; border: none; font-weight: 400; padding: 8px; }
   #gate .err { color: var(--red); font-size: 12px; margin-top: 8px; min-height: 16px; }
 
   /* ---------- 상단 바 ---------- */
@@ -91,8 +91,8 @@
     border: 1px solid var(--border); background: var(--panel2); color: var(--muted);
     font-size: 12px; padding: 6px 14px; border-radius: 20px;
   }
-  .pill-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; }
-  .pill-btn.admin-on { background: var(--red); color: #fff; border-color: var(--red); font-weight: 600; }
+  .pill-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 400; }
+  .pill-btn.admin-on { background: var(--red); color: #fff; border-color: var(--red); font-weight: 400; }
 
   .layout { max-width: 960px; margin: 0 auto; }
   .main { min-width: 0; }
@@ -101,14 +101,14 @@
   .menu-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
   .menu-row select {
     flex: 1 1 140px; min-width: 110px; padding: 10px 30px 10px 12px; border-radius: 10px;
-    font-size: 14px; font-weight: 600; color: var(--text); background: var(--panel);
+    font-size: 14px; font-weight: 400; color: var(--text); background: var(--panel);
     border: 1px solid var(--border); cursor: pointer; appearance: none; -webkit-appearance: none;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path fill='%23888' d='M5.5 7.5l4.5 4.5 4.5-4.5z'/></svg>");
     background-repeat: no-repeat; background-position: right 10px center; background-size: 14px;
   }
   .menu-row select:disabled { opacity: 0.45; cursor: default; }
   .menu-row select:focus { outline: none; border-color: var(--blue); }
-  #sel-category { font-weight: 700; }
+  #sel-category { font-weight: 400; }
 
   /* ---------- 로딩 표시 ---------- */
   .loading-msg {
@@ -163,7 +163,7 @@
   /* ---------- 관리자: 그룹 안 덱 순서 지정 ---------- */
   .order-assign { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 12px; color: var(--muted); }
   .order-assign select {
-    padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--text);
+    padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 400; color: var(--text);
     background: var(--panel2); border: 1px solid var(--border); cursor: pointer;
   }
 
@@ -189,11 +189,11 @@
 
   .card-char { position: relative; border-radius: 10px; overflow: hidden; border: 2px solid var(--border); background: var(--panel2); }
   .card-char img { width: 100%; display: block; aspect-ratio: 3/4; object-fit: cover; }
-  .card-char .name { background: #000; color: #fff; text-align: center; font-size: clamp(10px, 2.6vw, 13px); padding: 6px 0; font-weight: 600; }
+  .card-char .name { background: #000; color: #fff; text-align: center; font-size: clamp(10px, 2.6vw, 13px); padding: 6px 0; font-weight: 400; }
   .card-char .badge {
     position: absolute; top: 6px; right: 6px; min-width: 22px; height: 20px; padding: 0 7px;
     border-radius: 6px; color: #fff; display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 700; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,0.45);
+    font-size: 11px; font-weight: 400; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,0.45);
   }
   .badge-front { background: linear-gradient(135deg, #e8636c, #c93540); }
   .badge-mid   { background: linear-gradient(135deg, #f0c96a, #cf9a2a); }
@@ -213,7 +213,7 @@
 
   .position-box { background: var(--panel2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; height: 100%; }
   .position-box .headers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 8px; flex: 0 0 auto; }
-  .position-box .headers div { text-align: center; font-size: 12px; font-weight: 600; background: #2c3040; border-radius: 8px; padding: 5px 0; color: var(--text); }
+  .position-box .headers div { text-align: center; font-size: 12px; font-weight: 400; background: #2c3040; border-radius: 8px; padding: 5px 0; color: var(--text); }
   :root[data-theme="light"] .position-box .headers div { background: #e4e9f1; }
   .position-box .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; flex: 1 1 auto; min-height: 0; }
   .position-col { display: flex; flex-direction: column; gap: 6px; justify-content: center; height: 100%; }
@@ -227,7 +227,7 @@
   .timeline-title { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
   .cycle { margin-bottom: 8px; }
   .cycle:last-of-type { margin-bottom: 0; }
-  .cycle-label { display: inline-block; font-size: 11px; font-weight: 700; color: #000; background: var(--gold); border-radius: 5px; padding: 2px 8px; }
+  .cycle-label { display: inline-block; font-size: 11px; font-weight: 400; color: #000; background: var(--gold); border-radius: 5px; padding: 2px 8px; }
   /* 한 사이클의 스텝들은 줄바꿈으로 겹치듯 쌓이지 않고 항상 한 줄에 나오도록 한다.
      화면이 좁으면 칸 너비/간격을 줄여서 최대한 맞추고, 그래도 안 들어가면 가로 스크롤로 넘긴다.
      1사이클/2사이클을 같이 보는 경우가 많아서(모바일에서 게임 위에 창으로 띄워놓고 봄) 세로/가로
@@ -236,12 +236,16 @@
      top:-4px로 위로 살짝 튀어나온 부분이 위쪽에서 잘려 반원처럼 보이는 문제가 있었다.
      padding-top으로 여유 공간을 줘서 배지가 안 잘리게 한다. */
   .timeline-row { display: flex; align-items: flex-start; gap: clamp(1px, 0.6vw, 3px); flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-top: 7px; padding-bottom: 2px; }
-  .step { display: flex; flex-direction: column; align-items: center; width: clamp(50px, 13vw, 84px); flex: 0 0 auto; position: relative; }
-  .step-num { position: absolute; top: -4px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--gold); color: #000; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-  .step img { width: clamp(30px, 8vw, 44px); height: clamp(30px, 8vw, 44px); border-radius: 50%; object-fit: cover; object-position: 50% 22%; border: 2px solid var(--border); }
-  .step-name { font-size: clamp(9px, 2.2vw, 10.5px); margin-top: 2px; text-align: center; color: var(--text); }
-  .step-time { font-size: clamp(11px, 2.8vw, 13px); font-weight: 700; margin-top: 1px; text-align: center; color: var(--blue); }
-  .step-memo { font-size: clamp(10px, 2.4vw, 12px); margin-top: 3px; text-align: center; color: var(--muted); line-height: 1.25; word-break: keep-all; border-top: 1px dashed var(--border); padding-top: 3px; width: 100%; }
+  .step { display: flex; flex-direction: column; align-items: center; width: clamp(58px, 15vw, 96px); flex: 0 0 auto; position: relative; }
+  .step-num { position: absolute; top: -4px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--gold); color: #000; font-size: 10px; font-weight: 400; display: flex; align-items: center; justify-content: center; }
+  .step img { width: clamp(38px, 10vw, 54px); height: clamp(38px, 10vw, 54px); border-radius: 50%; object-fit: cover; object-position: 50% 22%; border: 2px solid var(--border); }
+  .step-name { font-size: clamp(10px, 2.4vw, 12px); margin-top: 2px; text-align: center; color: var(--text); }
+  .step-time-wrap { display: flex; align-items: center; justify-content: center; gap: 2px; margin-top: 1px; }
+  .step-time-wrap .step-time { margin-top: 0; }
+  .step-time { font-size: clamp(12px, 3vw, 15px); font-weight: 400; text-align: center; color: var(--blue); }
+  .step-time-clear { border: none; background: transparent; color: var(--muted); font-size: 11px; line-height: 1; padding: 0 1px; cursor: pointer; flex: 0 0 auto; }
+  .step-time-clear:hover, .step-time-clear:active { color: var(--red); }
+  .step-memo { font-size: clamp(11px, 2.6vw, 13.5px); margin-top: 3px; text-align: center; color: var(--muted); line-height: 1.25; word-break: keep-all; border-top: 1px dashed var(--border); padding-top: 3px; width: 100%; }
   .arrow { color: var(--muted); font-size: clamp(11px, 2.6vw, 14px); padding-top: 10px; flex: 0 0 auto; }
   .warn-list { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
   .warn-item { color: var(--gold); font-size: 13px; line-height: 1.7; }
@@ -277,7 +281,7 @@
   /* ---------- 관리자 편집 폼 ---------- */
   .small-btn { padding: 4px 10px; font-size: 11.5px; }
   .danger { background: var(--red); color: #fff; border: none; }
-  .primary { background: var(--blue); color: #fff; border: none; font-weight: 600; }
+  .primary { background: var(--blue); color: #fff; border: none; font-weight: 400; }
   .save-bar { position: sticky; bottom: 0; background: var(--panel); border-top: 1px solid var(--border); padding: 10px 0; margin-top: 16px; display: flex; align-items: center; gap: 10px; justify-content: flex-end; z-index: 5; }
   .save-bar #save-msg { margin-right: auto; }
   .msg { font-size: 12.5px; padding: 8px 0; }
@@ -293,7 +297,7 @@
   .tile-overlay.small { width: 48px; height: 48px; left: 50%; top: 0; transform: translateX(-50%); inset: auto; }
   .badge-select {
     position: absolute; top: 6px; right: 6px; z-index: 2; min-width: 22px; height: 20px;
-    border: none; border-radius: 6px; font-size: 10.5px; font-weight: 700; padding: 0 3px;
+    border: none; border-radius: 6px; font-size: 10.5px; font-weight: 400; padding: 0 3px;
     color: #fff; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.45); appearance: auto;
   }
   .badge-select.badge-front { background: linear-gradient(135deg, #e8636c, #c93540); }
@@ -303,7 +307,7 @@
      옵션 목록만 따로 어두운 글씨/밝은 배경으로 지정 */
   .badge-select option { color: #111; background: #fff; }
   .tile-overlay option { color: #111; background: #fff; }
-  .tile-overlay option[disabled] { color: #888; background: #eee; font-weight: 700; }
+  .tile-overlay option[disabled] { color: #888; background: #eee; font-weight: 400; }
   .tile-remove { position: absolute; top: 8px; left: 8px; z-index: 2; width: 20px; height: 20px; line-height: 18px; padding: 0; border-radius: 50%; border: none; background: rgba(0,0,0,0.55); color: #fff; font-size: 13px; cursor: pointer; }
   .step .tile-remove.small { top: -4px; right: -4px; left: auto; width: 16px; height: 16px; line-height: 14px; font-size: 11px; }
   .add-row { text-align: center; margin: -4px 0 14px; }
@@ -372,10 +376,10 @@
     .cycle { margin-bottom: 6px; }
     .timeline-row { overflow-x: visible; gap: 1px; padding-top: 6px; padding-bottom: 0; }
     .step { width: auto; flex: 1 1 0; min-width: 0; }
-    .step img { width: 68%; height: auto; aspect-ratio: 1/1; max-width: 36px; }
-    .step-name { font-size: 8.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
-    .step-time { font-size: 10px; margin-top: 0; }
-    .step-memo { font-size: 9px; overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
+    .step img { width: 78%; height: auto; aspect-ratio: 1/1; max-width: 44px; }
+    .step-name { font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
+    .step-time { font-size: 11.5px; margin-top: 0; }
+    .step-memo { font-size: 10px; overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
     .arrow { flex: 0 0 auto; font-size: 9px; padding: 0 1px; padding-top: 8px; }
   }
 
@@ -406,10 +410,10 @@
   .capture-narrow .cycle { margin-bottom: 6px; }
   .capture-narrow .timeline-row { overflow-x: visible; gap: 1px; padding-top: 6px; padding-bottom: 0; }
   .capture-narrow .step { width: auto; flex: 1 1 0; min-width: 0; }
-  .capture-narrow .step img { width: 68%; height: auto; aspect-ratio: 1/1; max-width: 36px; }
-  .capture-narrow .step-name { font-size: 8.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
-  .capture-narrow .step-time { font-size: 10px; margin-top: 0; }
-  .capture-narrow .step-memo { font-size: 9px; overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
+  .capture-narrow .step img { width: 78%; height: auto; aspect-ratio: 1/1; max-width: 44px; }
+  .capture-narrow .step-name { font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
+  .capture-narrow .step-time { font-size: 11.5px; margin-top: 0; }
+  .capture-narrow .step-memo { font-size: 10px; overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
   .capture-narrow .arrow { flex: 0 0 auto; font-size: 9px; padding: 0 1px; padding-top: 8px; }
   /* html2canvas가 그라디언트 + 둥근 모서리 + box-shadow 조합을 캡처할 때
      배지 테두리가 각지게(사각형 티가 나게) 깨져 보이는 문제가 있어서,
@@ -1432,8 +1436,11 @@ function renderDeckHtml(deck, editable) {
         var isLast = si === cy.steps.length - 1;
         var arrow = (!isLast || editable) ? '<div class="arrow">→</div>' : '';
         var charOverlay = editable ? '<select class="tile-overlay small" data-edit-step="' + ci + ':' + si + '">' + optionsHtml_(deckCharOptions, s.name) + '</select>' : '';
+        // 시간 칸 하나만 따로 지울 수 있게, 값이 있을 때만 옆에 작은 × 버튼을 보여준다
+        // ("시간 전체 지우기"는 사이클 전체를 다 비우는 거라 특정 캐릭터 하나만 고칠 땐 과함).
+        var tagClearBtn = (editable && s.tag) ? '<button type="button" class="step-time-clear" data-clear-step-time="' + ci + ':' + si + '" title="이 시간만 지우기">×</button>' : '';
         var tagHtml = editable
-          ? '<div class="step-time editable-text" contenteditable="true" data-step-field="tag:' + ci + ':' + si + '" data-placeholder="시간">' + esc(s.tag) + '</div>'
+          ? '<div class="step-time-wrap"><div class="step-time editable-text" contenteditable="true" data-step-field="tag:' + ci + ':' + si + '" data-placeholder="시간">' + esc(s.tag) + '</div>' + tagClearBtn + '</div>'
           : (s.tag ? '<div class="step-time">' + esc(s.tag) + '</div>' : '');
         var memoHtml = editable
           ? '<div class="step-memo editable-text" contenteditable="true" data-step-field="memo:' + ci + ':' + si + '" data-placeholder="메모">' + esc(s.memo) + '</div>'
@@ -1452,7 +1459,10 @@ function renderDeckHtml(deck, editable) {
       return '<div class="cycle"><div class="cycle-label-row">' + cycleLabel + '</div><div class="timeline-row">' + stepsHtml + addStepBtn + '</div></div>';
     }).join('');
     var addCycleBtn = editable ? '<button type="button" class="add-btn" data-add-cycle>+ 사이클 추가</button>' : '';
-    timelineHtml = '<div class="timeline"><div class="timeline-title">스킬 타임라인 — 사이클별 사용 횟수/순서는 덱마다 다를 수 있음</div>' + cyclesHtml + addCycleBtn;
+    // 캐릭터/순서가 자주 바뀌어서 이미 적어둔 시간을 전부 지우고 다시 적어야 하는 경우가 많아,
+    // 한 칸씩 지우지 않고 모든 사이클의 시간을 한 번에 비우는 버튼을 같이 둔다.
+    var clearTimesBtn = editable ? '<button type="button" class="add-btn small" data-clear-times style="margin-left:8px;">시간 전체 지우기</button>' : '';
+    timelineHtml = '<div class="timeline"><div class="timeline-title">스킬 타임라인 — 사이클별 사용 횟수/순서는 덱마다 다를 수 있음' + clearTimesBtn + '</div>' + cyclesHtml + addCycleBtn;
 
     var warnings = deck.warnings || [];
     if (editable || warnings.length) {
@@ -2020,6 +2030,22 @@ function wireAdminInline_(container, deck) {
     deck.timeline.cycles.push({ label: (deck.timeline.cycles.length + 1) + '사이클', steps: [] });
     refresh();
   };
+  var clearTimesBtn = container.querySelector('[data-clear-times]');
+  if (clearTimesBtn) clearTimesBtn.onclick = function () {
+    if (!confirm('모든 사이클의 시간을 다 지울까요? (메모는 그대로 남습니다)')) return;
+    (deck.timeline.cycles || []).forEach(function (cy) {
+      (cy.steps || []).forEach(function (s) { s.tag = ''; });
+    });
+    refresh();
+  };
+  container.querySelectorAll('[data-clear-step-time]').forEach(function (btn) {
+    btn.onclick = function () {
+      var parts = btn.dataset.clearStepTime.split(':');
+      var s = deck.timeline.cycles[Number(parts[0])].steps[Number(parts[1])];
+      if (s) s.tag = '';
+      refresh();
+    };
+  });
   var addWarnBtn = container.querySelector('[data-add-warn]');
   if (addWarnBtn) addWarnBtn.onclick = function () {
     deck.warnings = deck.warnings || [];
