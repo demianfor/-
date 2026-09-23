@@ -271,27 +271,6 @@
     -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.92) 70%, rgba(0,0,0,1) 88%);
     mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.92) 70%, rgba(0,0,0,1) 88%);
   }
-  /* --boss-tint: 속성 뱃지 색상과 맞춘 R,G,B (덱에 속성이 없으면 기본 네이비-블루 사용).
-     예전엔 이 색 그라데이션을 .title-boss(오른쪽 78%) 안에서만, 그것도 보스 이미지 "위"에
-     덮어서 대각선으로 깔았었다. 그러면 두 가지 문제가 있었다: (1) 글씨 영역은 이 박스 바깥이라
-     그라데이션이 아예 없어서 경계선에서 위/아래 색이 안 맞아 이음새처럼 보였고, (2) 색이 이미지
-     위에 덮여서 보스 이미지 자체가 흐릿하게 물들어 보였다. 그래서 이제는 그라데이션을
-     .title-bar 전체 폭에 깔고(글씨 쪽까지 자연스럽게 이어지게), z-index도 이미지보다 낮춰서
-     "이미지 뒤"에 두었다 — 보스 이미지는 필터 없이 깨끗하게 보이고, 색은 이미지가 자기 왼쪽
-     페이드로 옅어지는 구간과 글씨 쪽 배경에서만 드러난다. 방향은 오른쪽 아래(속성 색, 진하게)
-     에서 왼쪽 위(투명/배경색)로 — 화면에 보이는 경계선은 왼쪽 아래에서 오른쪽 위로 올라가는
-     대각선이 된다. --boss-tint 변수는 .title-boss가 아니라 .title-bar 자체에 둬야
-     .title-bar::before(그 자식이 아니라 본인의 가상 요소)가 값을 물려받는다. */
-  .title-bar {
-    --boss-tint: 92,100,118;
-  }
-  .title-bar::before {
-    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    background: linear-gradient(to top left, rgba(var(--boss-tint),0.5) 0%, rgba(var(--boss-tint),0.5) 40%, var(--panel) 56%, var(--panel) 100%);
-  }
-  :root[data-theme="light"] .title-bar::before {
-    background: linear-gradient(to top left, rgba(var(--boss-tint),0.4) 0%, rgba(var(--boss-tint),0.4) 40%, var(--panel) 56%, var(--panel) 100%);
-  }
   .title-text { position: relative; z-index: 2; padding: 10px 4px 10px 16px; }
   .title-text h1 { margin: 0 0 8px 0; }
 
@@ -1520,12 +1499,8 @@ function renderDeckHtml(deck, editable) {
   // deck.bossIcon을 직접 지정해둔 덱은 그걸 쓰고, 없으면 요일/그룹에 맞는 기본 보스 이미지를 자동으로 쓴다.
   var effectiveBossIcon = deck.bossIcon || defaultBossIcon_(deck);
   var bossImg = '<img src="' + esc(effectiveBossIcon) + '" referrerpolicy="no-referrer" loading="lazy" onerror="imgRetry_(this)">';
-  var bossTintStyle = ' style="--boss-tint:' + bossTint_(deck) + '"';
   var titleEditable = editable && !isGrouped; // 그룹이 있는 덱은 제목이 자동 생성이라 직접 못 고침
-  // --boss-tint는 .title-bar::before(그라데이션)가 읽어야 해서 .title-boss가 아니라
-  // .title-bar 자체에 넣는다(CSS 변수는 자손에게만 물려지고, 가상 요소는 자기 자신의 요소
-  // 기준으로 값을 물려받기 때문).
-  var titleBar = '<div class="title-bar"' + bossTintStyle + '>' +
+  var titleBar = '<div class="title-bar">' +
     (editable
       ? '<div class="title-boss editable" data-edit-boss title="클릭해서 보스 이미지 URL을 직접 지정 (비워두면 요일 기본 이미지 사용)">' + bossImg + '</div>'
       : (effectiveBossIcon ? '<div class="title-boss">' + bossImg + '</div>' : '')) +
