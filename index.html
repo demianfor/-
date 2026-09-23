@@ -251,6 +251,7 @@
   .warn-item { color: var(--gold); font-size: 13px; line-height: 1.7; }
   .warn-item .tile-remove, .warn-list .add-btn.small { position: static; width: auto; height: auto; border-radius: 5px; padding: 1px 6px; font-size: 10px; margin-left: 6px; background: var(--red); vertical-align: middle; }
   .warn-list .add-btn.small { background: var(--panel2); color: var(--muted); margin-left: 0; }
+  .warn-item .drag-handle { position: static; width: auto; height: auto; line-height: normal; border-radius: 5px; padding: 1px 6px; font-size: 10px; margin-left: 6px; background: var(--panel2); color: var(--muted); vertical-align: middle; }
   .note-tag { display: inline-block; background: #3a3020; color: var(--gold); font-size: 10px; border-radius: 4px; padding: 2px 6px; margin-bottom: 8px; }
   :root[data-theme="light"] .note-tag { background: #fbeecb; color: #8a6612; }
 
@@ -1468,10 +1469,11 @@ function renderDeckHtml(deck, editable) {
     if (editable || warnings.length) {
       var warnHtml = warnings.map(function (w, wi) {
         var removeBtn = editable ? '<button type="button" class="tile-remove small" data-remove-warn="' + wi + '" title="삭제">×</button>' : '';
+        var dragHandle = editable ? '<button type="button" class="drag-handle" data-drag-handle="warn" title="드래그해서 순서 바꾸기">⠿</button>' : '';
         var text = editable
           ? '<span class="editable-text" contenteditable="true" data-warn-field="' + wi + '" data-placeholder="주의사항 입력">' + esc(w) + '</span>'
           : esc(w);
-        return '<div class="warn-item">※ ' + text + removeBtn + '</div>';
+        return '<div class="warn-item"' + (editable ? ' data-drag-warn="' + wi + '"' : '') + '>※ ' + text + removeBtn + dragHandle + '</div>';
       }).join('');
       var addWarnBtn = editable ? '<button type="button" class="add-btn small" data-add-warn>+ 주의사항 추가</button>' : '';
       timelineHtml += '<div class="warn-list">' + warnHtml + addWarnBtn + '</div>';
@@ -1771,6 +1773,30 @@ function initDragReorderOnce_() {
   document.addEventListener('pointercancel', endDrag);
 }
 
+// 손잡이 버튼 하나에 대해서만 드래그 시작 이벤트를 연결한다. 보통은 wireDragReorder_가 한 번에
+// 여러 손잡이를 훑으며 이걸 호출하지만, ensureWarningPresent_처럼 전체를 다시 그리지 않고
+// 항목 하나만 DOM에 새로 끼워 넣은 경우엔 이 함수만 따로 불러서 그 손잡이 하나만 연결한다
+// (전체를 다시 훑으면 이미 연결된 기존 손잡이들에 이벤트가 중복으로 붙어버림).
+function wireDragHandle_(handle, container, itemAttr, onDrop) {
+  handle.addEventListener('pointerdown', function (e) {
+    var item = handle.closest('[' + itemAttr + ']');
+    if (!item) return;
+    e.preventDefault();
+    var rect = item.getBoundingClientRect();
+    _dragCtl.active = {
+      pointerId: e.pointerId,
+      key: item.getAttribute(itemAttr),
+      item: item,
+      container: container,
+      itemAttr: itemAttr,
+      startX: e.clientX, startY: e.clientY,
+      offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top,
+      moved: false, ghost: null, targetKey: null,
+      onDrop: onDrop
+    };
+  });
+}
+
 // container: 다시 그려질 때마다 새로 넘겨받는 루트 엘리먼트.
 // handleSelector: 손잡이 버튼 셀렉터 (예: '[data-drag-handle="set"]').
 // itemAttr: 손잡이가 속한 항목을 식별하는 data-* 속성 이름 (예: 'data-drag-set').
@@ -1778,23 +1804,7 @@ function initDragReorderOnce_() {
 function wireDragReorder_(container, handleSelector, itemAttr, onDrop) {
   initDragReorderOnce_();
   container.querySelectorAll(handleSelector).forEach(function (handle) {
-    handle.addEventListener('pointerdown', function (e) {
-      var item = handle.closest('[' + itemAttr + ']');
-      if (!item) return;
-      e.preventDefault();
-      var rect = item.getBoundingClientRect();
-      _dragCtl.active = {
-        pointerId: e.pointerId,
-        key: item.getAttribute(itemAttr),
-        item: item,
-        container: container,
-        itemAttr: itemAttr,
-        startX: e.clientX, startY: e.clientY,
-        offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top,
-        moved: false, ghost: null, targetKey: null,
-        onDrop: onDrop
-      };
-    });
+    wireDragHandle_(handle, container, itemAttr, onDrop);
   });
 }
 
@@ -1803,27 +1813,48 @@ function wireDragReorder_(container, handleSelector, itemAttr, onDrop) {
 ========================================================= */
 var WARN_SKILL_TIME_TEXT_ = '궁 시간 잘 맞춰주세요';
 
-// 스킬 타임라인에 시간을 적으면 이 주의사항을 자동으로 하나 끼워 넣는다. 전체 화면을 다시 그리면
-// 지금 시간을 입력 중인 칸의 커서 위치가 날아가버려서(contenteditable 특성상), 그 대신 주의사항
-// 목록에 새 항목 DOM을 직접 하나 더 끼워 넣고 그 항목만 따로 이벤트를 연결한다.
+// 스킬 타임라인에 시간을 적으면 이 주의사항을 맨 앞에 자동으로 하나 끼워 넣는다(가장 중요한
+// 주의사항이니 눈에 잘 띄게). 전체 화면을 다시 그리면 지금 시간을 입력 중인 칸의 커서 위치가
+// 날아가버려서(contenteditable 특성상), 그 대신 주의사항 목록 맨 앞에 새 항목 DOM을 직접 하나
+// 끼워 넣고 기존 항목들의 인덱스만 하나씩 밀어준 뒤 그 항목만 따로 이벤트를 연결한다.
 function ensureWarningPresent_(container, deck, text) {
   deck.warnings = deck.warnings || [];
   if (deck.warnings.indexOf(text) !== -1) return;
-  var wi = deck.warnings.length;
-  deck.warnings.push(text);
+  deck.warnings.unshift(text);
   var warnList = container.querySelector('.warn-list');
   if (!warnList) return; // 안전장치: 화면에 주의사항 영역 자체가 없으면 데이터만 반영해두고 넘어감
+  // 화면에 이미 떠 있는 기존 항목들은 배열 상 인덱스가 전부 하나씩 밀렸으니, DOM에 박혀 있는
+  // data-* 인덱스도 맞춰서 다시 매긴다(이벤트 핸들러는 클릭/입력 시점에 dataset 값을 그때 읽으므로,
+  // 속성값만 고쳐주면 다시 연결할 필요는 없다).
+  Array.prototype.forEach.call(warnList.querySelectorAll('.warn-item[data-drag-warn]'), function (existingItem) {
+    var newIdx = String(Number(existingItem.getAttribute('data-drag-warn')) + 1);
+    existingItem.setAttribute('data-drag-warn', newIdx);
+    var f = existingItem.querySelector('[data-warn-field]');
+    if (f) f.setAttribute('data-warn-field', newIdx);
+    var r = existingItem.querySelector('[data-remove-warn]');
+    if (r) r.setAttribute('data-remove-warn', newIdx);
+  });
   var item = document.createElement('div');
   item.className = 'warn-item';
-  item.innerHTML = '※ <span class="editable-text" contenteditable="true" data-warn-field="' + wi + '" data-placeholder="주의사항 입력">' + esc(text) + '</span>' +
-    '<button type="button" class="tile-remove small" data-remove-warn="' + wi + '" title="삭제">×</button>';
-  var addBtn = warnList.querySelector('[data-add-warn]');
-  if (addBtn) warnList.insertBefore(item, addBtn); else warnList.appendChild(item);
+  item.setAttribute('data-drag-warn', '0');
+  item.innerHTML = '※ <span class="editable-text" contenteditable="true" data-warn-field="0" data-placeholder="주의사항 입력">' + esc(text) + '</span>' +
+    '<button type="button" class="tile-remove small" data-remove-warn="0" title="삭제">×</button>' +
+    '<button type="button" class="drag-handle" data-drag-handle="warn" title="드래그해서 순서 바꾸기">⠿</button>';
+  warnList.insertBefore(item, warnList.firstChild); // 항상 맨 앞
   var field = item.querySelector('[data-warn-field]');
   field.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); field.blur(); } });
   field.oninput = function () { deck.warnings[Number(field.dataset.warnField)] = field.textContent.trim(); };
   var removeBtn = item.querySelector('[data-remove-warn]');
   removeBtn.onclick = function () { deck.warnings.splice(Number(removeBtn.dataset.removeWarn), 1); renderCurrentDeck(); };
+  var dragHandle = item.querySelector('[data-drag-handle="warn"]');
+  wireDragHandle_(dragHandle, container, 'data-drag-warn', function (srcKey, tgtKey) {
+    var warnings = deck.warnings || [];
+    var si = Number(srcKey), ti = Number(tgtKey);
+    var tmp = warnings[si];
+    warnings[si] = warnings[ti];
+    warnings[ti] = tmp;
+    renderCurrentDeck();
+  });
 }
 
 function wireAdminInline_(container, deck) {
@@ -1868,6 +1899,14 @@ function wireAdminInline_(container, deck) {
     // 캐릭터를 바꿀 때와 똑같이 자동으로 비워서 새로 적게 한다.
     if (sArr[si]) { sArr[si].tag = ''; sArr[si].memo = ''; }
     if (tArr[ti]) { tArr[ti].tag = ''; tArr[ti].memo = ''; }
+    refresh();
+  });
+  wireDragReorder_(container, '[data-drag-handle="warn"]', 'data-drag-warn', function (srcKey, tgtKey) {
+    var warnings = deck.warnings || [];
+    var si = Number(srcKey), ti = Number(tgtKey);
+    var tmp = warnings[si];
+    warnings[si] = warnings[ti];
+    warnings[ti] = tmp;
     refresh();
   });
 
