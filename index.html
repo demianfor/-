@@ -233,10 +233,10 @@
   .position-col .pname { font-size: 11px; text-align: center; color: var(--muted); margin-top: 3px; flex: 0 0 auto; }
 
   .timeline { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
-  .timeline-title { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .timeline-title { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
   .cycle { margin-bottom: 8px; }
   .cycle:last-of-type { margin-bottom: 0; }
-  .cycle-label { display: inline-block; font-size: 11px; font-weight: 400; color: #000; background: var(--gold); border-radius: 5px; padding: 2px 8px; }
+  .cycle-label { display: inline-block; font-size: 12px; font-weight: 400; color: #000; background: var(--gold); border-radius: 5px; padding: 2px 8px; }
   /* 한 사이클의 스텝들은 줄바꿈으로 겹치듯 쌓이지 않고 항상 한 줄에 나오도록 한다.
      화면이 좁으면 칸 너비/간격을 줄여서 최대한 맞추고, 그래도 안 들어가면 가로 스크롤로 넘긴다.
      1사이클/2사이클을 같이 보는 경우가 많아서(모바일에서 게임 위에 창으로 띄워놓고 봄) 세로/가로
@@ -248,16 +248,18 @@
   .step { display: flex; flex-direction: column; align-items: center; width: clamp(58px, 15vw, 96px); flex: 0 0 auto; position: relative; }
   .step-num { position: absolute; top: -4px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--gold); color: #000; font-size: 10px; font-weight: 400; display: flex; align-items: center; justify-content: center; }
   .step img { width: clamp(38px, 10vw, 54px); height: clamp(38px, 10vw, 54px); border-radius: 50%; object-fit: cover; object-position: 50% 22%; border: 2px solid var(--border); }
-  .step-name { font-size: clamp(10px, 2.4vw, 12px); margin-top: 2px; text-align: center; color: var(--text); }
+  .step-name { font-size: clamp(11px, 2.7vw, 13.5px); margin-top: 2px; text-align: center; color: var(--text); }
   .step-time-wrap { display: flex; align-items: center; justify-content: center; gap: 2px; margin-top: 1px; }
   .step-time-wrap .step-time { margin-top: 0; }
-  .step-time { font-size: clamp(12px, 3vw, 15px); font-weight: 400; text-align: center; color: var(--blue); }
+  .step-time { font-size: clamp(13px, 3.4vw, 17px); font-weight: 400; text-align: center; color: var(--blue); }
   .step-time-clear { border: none; background: transparent; color: var(--muted); font-size: 11px; line-height: 1; padding: 0 1px; cursor: pointer; flex: 0 0 auto; }
   .step-time-clear:hover, .step-time-clear:active { color: var(--red); }
-  .step-memo { font-size: clamp(11px, 2.6vw, 13.5px); margin-top: 3px; text-align: center; color: var(--muted); line-height: 1.25; word-break: keep-all; border-top: 1px dashed var(--border); padding-top: 3px; width: 100%; }
+  .step-memo { font-size: clamp(12px, 2.9vw, 15px); margin-top: 3px; text-align: center; color: var(--muted); line-height: 1.25; word-break: keep-all; border-top: 1px dashed var(--border); padding-top: 3px; width: 100%; }
   .arrow { color: var(--muted); font-size: clamp(11px, 2.6vw, 14px); padding-top: 10px; flex: 0 0 auto; }
   .warn-list { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
-  .warn-item { color: var(--gold); font-size: 13px; line-height: 1.7; }
+  /* 주의사항은 눈에 잘 들어와야 해서, 둥글둥글한 장식용 폰트(Jua) 대신 획이 또렷한 Pretendard로
+     따로 지정한다(다른 곳은 그대로 Jua를 씀 — 여기만 가독성 위주로 바꿔달라는 의견이 있었음). */
+  .warn-item { font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--gold); font-size: 14.5px; font-weight: 400; line-height: 1.7; }
   .warn-item .tile-remove, .warn-list .add-btn.small { position: static; width: auto; height: auto; border-radius: 5px; padding: 1px 6px; font-size: 10px; margin-left: 6px; background: var(--red); vertical-align: middle; }
   .warn-list .add-btn.small { background: var(--panel2); color: var(--muted); margin-left: 0; }
   .warn-item .drag-handle { position: static; width: auto; height: auto; line-height: normal; border-radius: 5px; padding: 1px 6px; font-size: 10px; margin-left: 6px; background: var(--panel2); color: var(--muted); vertical-align: middle; }
@@ -380,9 +382,9 @@
     .step { width: auto; flex: 1 1 0; min-width: 0; }
     .step img { width: 78%; height: auto; aspect-ratio: 1/1; max-width: 44px; }
     .tile-overlay.small { width: 78%; height: auto; aspect-ratio: 1/1; max-width: 44px; }
-    .step-name { font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
-    .step-time { font-size: 11.5px; margin-top: 0; }
-    .step-memo { font-size: 10px; overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
+    .step-name { font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
+    .step-time { font-size: 13px; margin-top: 0; }
+    .step-memo { font-size: 11px; overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
     .arrow { flex: 0 0 auto; font-size: 9px; padding: 0 1px; padding-top: 8px; }
   }
 
@@ -414,9 +416,9 @@
   .capture-narrow .timeline-row { overflow-x: visible; gap: 1px; padding-top: 6px; padding-bottom: 0; }
   .capture-narrow .step { width: auto; flex: 1 1 0; min-width: 0; }
   .capture-narrow .step img { width: 78%; height: auto; aspect-ratio: 1/1; max-width: 44px; }
-  .capture-narrow .step-name { font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
-  .capture-narrow .step-time { font-size: 11.5px; margin-top: 0; }
-  .capture-narrow .step-memo { font-size: 10px; overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
+  .capture-narrow .step-name { font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
+  .capture-narrow .step-time { font-size: 13px; margin-top: 0; }
+  .capture-narrow .step-memo { font-size: 11px; overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
   .capture-narrow .arrow { flex: 0 0 auto; font-size: 9px; padding: 0 1px; padding-top: 8px; }
   /* html2canvas가 그라디언트 + 둥근 모서리 + box-shadow 조합을 캡처할 때
      배지 테두리가 각지게(사각형 티가 나게) 깨져 보이는 문제가 있어서,
