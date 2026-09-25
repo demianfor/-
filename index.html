@@ -254,7 +254,8 @@
   .step-time { font-size: clamp(13px, 3.4vw, 17px); font-weight: 400; text-align: center; color: var(--blue); }
   .step-time-clear { border: none; background: transparent; color: var(--muted); font-size: 11px; line-height: 1; padding: 0 1px; cursor: pointer; flex: 0 0 auto; }
   .step-time-clear:hover, .step-time-clear:active { color: var(--red); }
-  .step-memo { font-size: clamp(12px, 2.9vw, 15px); margin-top: 3px; text-align: center; color: var(--muted); line-height: 1.25; word-break: keep-all; border-top: 1px dashed var(--border); padding-top: 3px; width: 100%; }
+  /* 메모도 주의사항과 같은 이유로 가독성 위주 폰트(Pretendard)로 바꾼다. */
+  .step-memo { font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; font-size: clamp(12px, 2.9vw, 15px); margin-top: 3px; text-align: center; color: var(--muted); line-height: 1.25; word-break: keep-all; border-top: 1px dashed var(--border); padding-top: 3px; width: 100%; }
   .arrow { color: var(--muted); font-size: clamp(11px, 2.6vw, 14px); padding-top: 10px; flex: 0 0 auto; }
   .warn-list { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
   /* 주의사항은 눈에 잘 들어와야 해서, 둥글둥글한 장식용 폰트(Jua) 대신 획이 또렷한 Pretendard로
