@@ -29,11 +29,12 @@
     --gold: #e0b13a;
     --red: #e0505a;
     --pink: #e07ab0;
-    /* 타임라인/주의사항/메모 글씨 크기를 관리자가 조절할 수 있게 하는 변수(-10px~10px).
-     * 서버(구글 시트, PropertiesService)에 저장된 값을 로그인 직후 이 변수에 반영한다.
-     * 화면 캡처(이미지로 저장/공유)도 같은 문서 안에 그려서 찍기 때문에 이 변수를 그대로
-     * 물려받는다 — 그래서 이 값을 바꾸면 스크린샷에도 자동으로 반영된다. */
-    --font-adjust: 0px;
+    /* 타임라인(스텝 이름/시간/메모)과 주의사항 글씨 크기를 각각 따로 관리자가 조절할 수 있게
+     * 하는 변수(-10px~10px). 서버(구글 시트, PropertiesService)에 저장된 값을 로그인 직후
+     * 이 변수들에 반영한다. 화면 캡처(이미지로 저장/공유)도 같은 문서 안에 그려서 찍기 때문에
+     * 이 변수를 그대로 물려받는다 — 그래서 이 값을 바꾸면 스크린샷에도 자동으로 반영된다. */
+    --font-adjust-tl: 0px;
+    --font-adjust-warn: 0px;
   }
   :root[data-theme="light"] {
     --bg: #eef1f6;
@@ -238,7 +239,12 @@
   .position-col .pname { font-size: 11px; text-align: center; color: var(--muted); margin-top: 3px; flex: 0 0 auto; }
 
   .timeline { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
-  .timeline-title { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .timeline-title { font-size: 13px; color: var(--muted); margin-bottom: 8px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  /* 타임라인/주의사항 글씨 크기 조절: 예전엔 상단바에 있었는데, 조절 → 스크롤해서 확인이 불편하다는
+     의견이 있어서 각 영역(타임라인/주의사항) 바로 옆으로 옮기고, 두 영역을 따로 조절할 수 있게 했다. */
+  .font-adjust-inline { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); font-weight: 400; }
+  .font-adjust-inline input { width: 42px; padding: 2px 4px; font-size: 11px; }
+  .font-adjust-inline button { padding: 2px 8px; font-size: 10.5px; }
   .cycle { margin-bottom: 8px; }
   .cycle:last-of-type { margin-bottom: 0; }
   .cycle-label { display: inline-block; font-size: 12px; font-weight: 400; color: #000; background: var(--gold); border-radius: 5px; padding: 2px 8px; }
@@ -253,19 +259,20 @@
   .step { display: flex; flex-direction: column; align-items: center; width: clamp(58px, 15vw, 96px); flex: 0 0 auto; position: relative; }
   .step-num { position: absolute; top: -4px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--gold); color: #000; font-size: 10px; font-weight: 400; display: flex; align-items: center; justify-content: center; }
   .step img { width: clamp(38px, 10vw, 54px); height: clamp(38px, 10vw, 54px); border-radius: 50%; object-fit: cover; object-position: 50% 22%; border: 2px solid var(--border); }
-  .step-name { font-size: clamp(calc(11px + var(--font-adjust)), 2.7vw, calc(13.5px + var(--font-adjust))); margin-top: 2px; text-align: center; color: var(--text); }
+  .step-name { font-size: clamp(calc(11px + var(--font-adjust-tl)), 2.7vw, calc(13.5px + var(--font-adjust-tl))); margin-top: 2px; text-align: center; color: var(--text); }
   .step-time-wrap { display: flex; align-items: center; justify-content: center; gap: 2px; margin-top: 1px; }
   .step-time-wrap .step-time { margin-top: 0; }
-  .step-time { font-size: clamp(calc(13px + var(--font-adjust)), 3.4vw, calc(17px + var(--font-adjust))); font-weight: 400; text-align: center; color: var(--blue); }
+  .step-time { font-size: clamp(calc(13px + var(--font-adjust-tl)), 3.4vw, calc(17px + var(--font-adjust-tl))); font-weight: 400; text-align: center; color: var(--blue); }
   .step-time-clear { border: none; background: transparent; color: var(--muted); font-size: 11px; line-height: 1; padding: 0 1px; cursor: pointer; flex: 0 0 auto; }
   .step-time-clear:hover, .step-time-clear:active { color: var(--red); }
-  /* 메모도 주의사항과 같은 이유로 가독성 위주 폰트(Pretendard)로 바꾼다. */
-  .step-memo { font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; font-size: clamp(calc(12px + var(--font-adjust)), 2.9vw, calc(15px + var(--font-adjust))); margin-top: 3px; text-align: center; color: var(--muted); line-height: 1.25; word-break: keep-all; border-top: 1px dashed var(--border); padding-top: 3px; width: 100%; }
+  /* 메모도 주의사항과 같은 이유로 가독성 위주 폰트(Pretendard)로 바꾼다. 타임라인 스텝에 속해 있으니
+     크기 조절도 "타임라인" 쪽 변수를 같이 쓴다. */
+  .step-memo { font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; font-size: clamp(calc(12px + var(--font-adjust-tl)), 2.9vw, calc(15px + var(--font-adjust-tl))); margin-top: 3px; text-align: center; color: var(--muted); line-height: 1.25; word-break: keep-all; border-top: 1px dashed var(--border); padding-top: 3px; width: 100%; }
   .arrow { color: var(--muted); font-size: clamp(11px, 2.6vw, 14px); padding-top: 10px; flex: 0 0 auto; }
   .warn-list { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
   /* 주의사항은 눈에 잘 들어와야 해서, 둥글둥글한 장식용 폰트(Jua) 대신 획이 또렷한 Pretendard로
      따로 지정한다(다른 곳은 그대로 Jua를 씀 — 여기만 가독성 위주로 바꿔달라는 의견이 있었음). */
-  .warn-item { font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--gold); font-size: calc(14.5px + var(--font-adjust)); font-weight: 400; line-height: 1.7; }
+  .warn-item { font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--gold); font-size: calc(14.5px + var(--font-adjust-warn)); font-weight: 400; line-height: 1.7; }
   .warn-item .tile-remove, .warn-list .add-btn.small { position: static; width: auto; height: auto; border-radius: 5px; padding: 1px 6px; font-size: 10px; margin-left: 6px; background: var(--red); vertical-align: middle; }
   .warn-list .add-btn.small { background: var(--panel2); color: var(--muted); margin-left: 0; }
   .warn-item .drag-handle { position: static; width: auto; height: auto; line-height: normal; border-radius: 5px; padding: 1px 6px; font-size: 10px; margin-left: 6px; background: var(--panel2); color: var(--muted); vertical-align: middle; }
@@ -388,9 +395,9 @@
     .step { width: auto; flex: 1 1 0; min-width: 0; }
     .step img { width: 78%; height: auto; aspect-ratio: 1/1; max-width: 44px; }
     .tile-overlay.small { width: 78%; height: auto; aspect-ratio: 1/1; max-width: 44px; }
-    .step-name { font-size: calc(10.5px + var(--font-adjust)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
-    .step-time { font-size: calc(13px + var(--font-adjust)); margin-top: 0; }
-    .step-memo { font-size: calc(11px + var(--font-adjust)); overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
+    .step-name { font-size: calc(10.5px + var(--font-adjust-tl)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
+    .step-time { font-size: calc(13px + var(--font-adjust-tl)); margin-top: 0; }
+    .step-memo { font-size: calc(11px + var(--font-adjust-tl)); overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
     .arrow { flex: 0 0 auto; font-size: 9px; padding: 0 1px; padding-top: 8px; }
   }
 
@@ -422,9 +429,9 @@
   .capture-narrow .timeline-row { overflow-x: visible; gap: 1px; padding-top: 6px; padding-bottom: 0; }
   .capture-narrow .step { width: auto; flex: 1 1 0; min-width: 0; }
   .capture-narrow .step img { width: 78%; height: auto; aspect-ratio: 1/1; max-width: 44px; }
-  .capture-narrow .step-name { font-size: calc(10.5px + var(--font-adjust)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
-  .capture-narrow .step-time { font-size: calc(13px + var(--font-adjust)); margin-top: 0; }
-  .capture-narrow .step-memo { font-size: calc(11px + var(--font-adjust)); overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
+  .capture-narrow .step-name { font-size: calc(10.5px + var(--font-adjust-tl)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-top: 1px; }
+  .capture-narrow .step-time { font-size: calc(13px + var(--font-adjust-tl)); margin-top: 0; }
+  .capture-narrow .step-memo { font-size: calc(11px + var(--font-adjust-tl)); overflow-wrap: break-word; margin-top: 2px; padding-top: 2px; }
   .capture-narrow .arrow { flex: 0 0 auto; font-size: 9px; padding: 0 1px; padding-top: 8px; }
   /* html2canvas가 그라디언트 + 둥근 모서리 + box-shadow 조합을 캡처할 때
      배지 테두리가 각지게(사각형 티가 나게) 깨져 보이는 문제가 있어서,
@@ -455,11 +462,6 @@
     <button class="pill-btn" id="free-btn" onclick="onFreeBtn()">자유 덱</button>
     <button class="pill-btn" id="add-item-btn" style="display:none" onclick="openAddItemModal()">+ 새 항목 추가</button>
     <button class="pill-btn" id="lib-manage-btn" style="display:none" onclick="openLibraryManageModal()">목록 관리</button>
-    <span id="font-adjust-wrap" style="display:none;align-items:center;gap:4px">
-      <span style="font-size:12px;color:var(--muted)">타임라인 글씨</span>
-      <input type="number" id="font-adjust-input" min="-10" max="10" step="1" value="0" style="width:52px" title="타임라인/주의사항/메모 글씨 크기(-10~10). 모두에게 똑같이 적용됩니다.">
-      <button class="pill-btn" id="font-adjust-save-btn" onclick="saveFontAdjust_()">적용</button>
-    </span>
     <button class="pill-btn" id="admin-btn" onclick="onAdminBtn()">관리자 모드</button>
   </div>
 </div>
@@ -563,7 +565,8 @@ var state = {
   adminPw: '',
   isAdmin: false,
   mode: 'normal', // 'normal' | 'free' — 위 "자유 덱" 버튼으로 전환
-  fontAdjust: 0, // 타임라인/주의사항/메모 글씨 크기 조절값(-10~10, px). 로그인 시 서버 값으로 채워짐(모두 공통).
+  fontAdjustTl: 0, // 타임라인(스텝 이름/시간/메모) 글씨 크기 조절값(-10~10, px). 로그인 시 서버 값으로 채워짐(모두 공통).
+  fontAdjustWarn: 0, // 주의사항 글씨 크기 조절값(-10~10, px). 로그인 시 서버 값으로 채워짐(모두 공통).
   freePin: '', // 자유 덱을 새로 만들 때 정한 4자리 번호(있으면). 그 덱을 처음 저장할 때만 같이 보낸다.
   // 핀이 걸린 자유 덱을 수정할 때, 한 번 맞는 핀을 입력하면 이 화면을 새로고침하기 전까지는
   // 저장할 때마다 다시 안 물어보도록 기억해두는 용도({덱id: 핀}). 서버로는 절대 미리 안 보내고,
@@ -620,23 +623,26 @@ function setTheme(t) {
   try { localStorage.setItem('gn_theme', t); } catch (e) {}
 }
 
-// 타임라인/주의사항/메모 글씨 크기 — 서버(관리자가 정한 값)를 CSS 변수 하나로 반영한다.
-// 이 변수를 쓰는 CSS(.step-name/.step-time/.step-memo/.warn-item)는 화면 캡처(이미지로 저장/공유)도
-// 같은 문서 안에서 그리기 때문에, 여기서 :root에만 한 번 반영해두면 스크린샷에도 자동으로 적용된다.
+// 타임라인/주의사항 글씨 크기 — 서버(관리자가 정한 값)를 CSS 변수 두 개(타임라인용/주의사항용)로
+// 각각 반영한다. 이 변수를 쓰는 CSS(.step-name/.step-time/.step-memo/.warn-item)는 화면 캡처
+// (이미지로 저장/공유)도 같은 문서 안에서 그리기 때문에, 여기서 :root에만 한 번 반영해두면
+// 스크린샷에도 자동으로 적용된다.
 function applyFontAdjust_() {
-  document.documentElement.style.setProperty('--font-adjust', (state.fontAdjust || 0) + 'px');
+  document.documentElement.style.setProperty('--font-adjust-tl', (state.fontAdjustTl || 0) + 'px');
+  document.documentElement.style.setProperty('--font-adjust-warn', (state.fontAdjustWarn || 0) + 'px');
 }
 
-function saveFontAdjust_() {
-  var input = document.getElementById('font-adjust-input');
+// key: 'tl'(타임라인) | 'warn'(주의사항). 컨트롤은 덱 화면 안(타임라인/주의사항 바로 옆)에 있어서
+// 덱을 다시 그릴 때마다 새로 만들어지므로, 버튼/입력칸을 id가 아니라 인자로 직접 받는다.
+function saveFontAdjust_(key, input, btn) {
   var v = Math.max(-10, Math.min(10, Math.round(Number(input.value) || 0)));
   input.value = v;
-  var btn = document.getElementById('font-adjust-save-btn');
   if (btn) btn.disabled = true;
-  api('setFontAdjust', {}, 'POST', { pw: state.adminPw, value: v }).then(function (res) {
+  api('setFontAdjust', {}, 'POST', { pw: state.adminPw, key: key, value: v }).then(function (res) {
     if (btn) btn.disabled = false;
     if (res.ok) {
-      state.fontAdjust = res.fontAdjust;
+      if (key === 'warn') state.fontAdjustWarn = res.fontAdjustWarn;
+      else state.fontAdjustTl = res.fontAdjustTl;
       applyFontAdjust_();
     } else {
       alert('적용 실패: ' + (res.error || ''));
@@ -677,7 +683,8 @@ function tryLogin() {
       try { localStorage.setItem('gn_view_pw', pw); } catch (e) {}
       document.getElementById('gate').style.display = 'none';
       state.decks = res.decks;
-      state.fontAdjust = Number(res.fontAdjust) || 0;
+      state.fontAdjustTl = Number(res.fontAdjustTl) || 0;
+      state.fontAdjustWarn = Number(res.fontAdjustWarn) || 0;
       applyFontAdjust_();
       renderDeckList();
       // 사용자가 아직 덱을 고르기 전인 지금부터 미리 캐릭터/펫 라이브러리를 받아둔다.
@@ -703,7 +710,6 @@ function onAdminBtn() {
     document.getElementById('admin-btn').classList.remove('admin-on');
     document.getElementById('add-item-btn').style.display = 'none';
     document.getElementById('lib-manage-btn').style.display = 'none';
-    document.getElementById('font-adjust-wrap').style.display = 'none';
     renderCurrentDeck();
     return;
   }
@@ -725,8 +731,6 @@ function tryAdminLogin(pw, silent) {
       document.getElementById('admin-btn').classList.add('admin-on');
       document.getElementById('add-item-btn').style.display = 'inline-block';
       document.getElementById('lib-manage-btn').style.display = 'inline-block';
-      document.getElementById('font-adjust-wrap').style.display = 'inline-flex';
-      document.getElementById('font-adjust-input').value = state.fontAdjust || 0;
       renderDeckList();
       loadLibraries().then(renderCurrentDeck);
     } else {
@@ -1012,6 +1016,7 @@ function renderCurrentDeck() {
   var editable = !!state.isAdmin || free;
   viewer.innerHTML = renderDeckHtml(deck, editable);
   document.getElementById('deck-toolbar').style.display = 'block';
+  if (state.isAdmin) wireFontAdjustControls_(viewer);
   if (editable) {
     wireAdminInline_(viewer, deck);
     document.getElementById('admin-bar').style.display = 'flex';
@@ -1428,6 +1433,25 @@ function posOptionsHtml_(col, slot) {
 }
 
 // deck: 덱 데이터. editable: true면 이미지 클릭→드롭다운 교체, 글자 클릭→직접 수정이 가능한 관리자용 마크업을 함께 그린다.
+// 관리자 전용 글씨 크기 조절 컨트롤(타임라인/주의사항 각각). key: 'tl' | 'warn'.
+// 전역(모두 공통) 설정이라 덱마다 값이 다르지 않고, 항상 state.fontAdjustTl/fontAdjustWarn을 쓴다.
+function fontAdjustControlHtml_(key, label) {
+  var val = key === 'warn' ? (state.fontAdjustWarn || 0) : (state.fontAdjustTl || 0);
+  return '<span class="font-adjust-inline">' + esc(label) +
+    '<input type="number" min="-10" max="10" step="1" value="' + val + '" data-font-adjust-input="' + key + '">' +
+    '<button type="button" class="add-btn small" data-font-adjust-save="' + key + '">적용</button></span>';
+}
+
+function wireFontAdjustControls_(container) {
+  container.querySelectorAll('[data-font-adjust-save]').forEach(function (btn) {
+    btn.onclick = function () {
+      var key = btn.getAttribute('data-font-adjust-save');
+      var input = container.querySelector('[data-font-adjust-input="' + key + '"]');
+      if (input) saveFontAdjust_(key, input, btn);
+    };
+  });
+}
+
 function renderDeckHtml(deck, editable) {
   var chars = sortedCharsForRow(deck.characters || []);
 
@@ -1533,7 +1557,10 @@ function renderDeckHtml(deck, editable) {
     // 캐릭터/순서가 자주 바뀌어서 이미 적어둔 시간을 전부 지우고 다시 적어야 하는 경우가 많아,
     // 한 칸씩 지우지 않고 모든 사이클의 시간을 한 번에 비우는 버튼을 같이 둔다.
     var clearTimesBtn = editable ? '<button type="button" class="add-btn small" data-clear-times style="margin-left:8px;">시간 전체 지우기</button>' : '';
-    timelineHtml = '<div class="timeline"><div class="timeline-title">스킬 타임라인 — 사이클별 사용 횟수/순서는 덱마다 다를 수 있음' + clearTimesBtn + '</div>' + cyclesHtml + addCycleBtn;
+    // 글씨 크기 조절(관리자 전용, 전체 공통 설정)은 예전엔 상단바에 있었는데, 조절하고 나서
+    // 다시 아래로 스크롤해서 확인해야 해 불편하다는 의견이 있어서 타임라인/주의사항 바로 옆으로 옮겼다.
+    var tlFontAdjustHtml = state.isAdmin ? fontAdjustControlHtml_('tl', '글씨 크기') : '';
+    timelineHtml = '<div class="timeline"><div class="timeline-title"><span>스킬 타임라인 — 사이클별 사용 횟수/순서는 덱마다 다를 수 있음</span>' + clearTimesBtn + tlFontAdjustHtml + '</div>' + cyclesHtml + addCycleBtn;
 
     var warnings = deck.warnings || [];
     if (editable || warnings.length) {
@@ -1546,7 +1573,8 @@ function renderDeckHtml(deck, editable) {
         return '<div class="warn-item"' + (editable ? ' data-drag-warn="' + wi + '"' : '') + '>※ ' + text + removeBtn + dragHandle + '</div>';
       }).join('');
       var addWarnBtn = editable ? '<button type="button" class="add-btn small" data-add-warn>+ 주의사항 추가</button>' : '';
-      timelineHtml += '<div class="warn-list">' + warnHtml + addWarnBtn + '</div>';
+      var warnFontAdjustHtml = state.isAdmin ? '<div class="timeline-title" style="margin:0 0 6px">' + fontAdjustControlHtml_('warn', '주의사항 글씨 크기') + '</div>' : '';
+      timelineHtml += '<div class="warn-list">' + warnFontAdjustHtml + warnHtml + addWarnBtn + '</div>';
     }
     timelineHtml += '</div>';
   }
